@@ -1,1 +1,1106 @@
-Hello World
+__TOC__
+
+—+!! Documentation of the RooStats -based statistics tools for Higgs PAG
+
+%TOC{title=“Contents:”}%
+
+This twikipage documents the [[RooStats]]-based software tools used for statistical analysis within the [[HiggsWG][Higgs PAG]].
+
+—++ Introduction
+
+The package now exists in GIT under https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit %BR% Previously it was hosted on CVS under [[http://cmssw.cvs.cern.ch/cgi-bin/cmssw.cgi/CMSSW/HiggsAnalysis/CombinedLimit/][HiggsAnalysis/CombinedLimit]].
+
+''For more information about GIT and its usage in CMS, see http://cms-sw.github.io/cmssw/faq.html''
+
+The code can be checked out from GIT and compiled on top of a CMSSW release that includes a recent RooFit / [[RooStats.WebHome][RooStats]] (see below).
+
+—++ Setting up the environment
+
+This package requires Scientific Linux 5 (SL5); as you cannot log anymore into lxplus5.cern.ch, you will need to create a virtual machine (VM) with SL5 installed to perform the operations below. You can find instructions on how to create a VM using the link [[CMSAISL5InstallationAndConfiguration][here]]. With the VM you will be able to log into your afs area, and set up the environemnt. If git does not work under the VM, then you can log into lxplus, get the package through git, then go back on the virtual machine to compile it.
+
+—+++ GIT recipe (the only supported recipe now)
+
+—++++ %BLUE%For end-users that don’t need to commit or do any development%ENDCOLOR%
+
+This is the simplest recipe and does not need a github account, nor to know anything about git besides these commands below.
+
+You can find the latest releases on github under https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/releases
+
+—+++++ ROOT6 SLC6 release (CMSSW_7_4_X)
+
+''Setting up the environment (once)'' %BR%
+
+<pre>export SCRAM_ARCH=slc6_amd64_gcc491
+cmsrel CMSSW_7_4_7
+cd CMSSW_7_4_7/src 
+cmsenv
+git clone https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit
+cd HiggsAnalysis/CombinedLimit
+</pre>
+''Update to a reccomended tag - currently the reccomended tag is v6.2.1'' %BR%
+
+<pre>cd $CMSSW_BASE/src/HiggsAnalysis/CombinedLimit
+git fetch origin
+git checkout v6.2.1
+scramv1 b clean; scramv1 b # always make a clean build, as scram doesn't always see updates to src/LinkDef.h
+</pre>
+* when running with the !HybridNew calculator, you can safely ignore the following warning from RooFit%BR% ==WARNING:Eval – RooStatsUtils::MakeNuisancePdf - no constraints found on nuisance parameters in the input model==
+
+''Combine Tool'' %BR% * An additional tool for submitting combine jobs to batch/crab, developed originally for HiggsToTauTau. Since the repository contains a certain amount of analysis-specific code, the following scripts can be used to clone it with a sparse checkout for just the core CombineHarvester/CombineTools subpackage, speeding up the checkout and compile times:
+<pre>
+git clone via ssh:
+bash <(curl -s https://raw.githubusercontent.com/cms-analysis/CombineHarvester/master/CombineTools/scripts/sparse-checkout-ssh.sh)
+git clone via https:
+bash <(curl -s https://raw.githubusercontent.com/cms-analysis/CombineHarvester/master/CombineTools/scripts/sparse-checkout-https.sh)
+</pre>
+—+++++ ROOT5 SLC6 release (CMSSW_7_1_X)
+
+''Setting up the environment (once)'' %BR%
+
+<pre>setenv SCRAM_ARCH slc6_amd64_gcc481
+cmsrel CMSSW_7_1_5 ### must be a 7_1_X release  &gt;= 7_1_5;  (7.0.X and 7.2.X are NOT supported either) 
+cd CMSSW_7_1_5/src 
+cmsenv
+git clone https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit
+</pre>
+* if you get errors related to ZLIB when doing the git clone, try instead doing the git clone before the cmsenv
+* when running with the !HybridNew calculator, you can safely ignore the following warning from RooFit%BR% ==WARNING:Eval – RooStatsUtils::MakeNuisancePdf - no constraints found on nuisance parameters in the input model==
+
+''Updating to a tag (both the first time and whenever there are updates)'' %BR%
+
+<pre>cd HiggsAnalysis/CombinedLimit
+git fetch origin
+git checkout v5.0.3   # try v5.0.1 if any issues occur
+scramv1 b clean; scramv1 b # always make a clean build, as scram doesn't always see updates to src/LinkDef.h
+</pre>
+—+++++ SLC5 release (not recommended)
+
+''Setting up the environment (once)'' %BR%
+
+<pre>setenv SCRAM_ARCH slc5_amd64_gcc472 
+cmsrel CMSSW_6_1_1 ### must be &gt;= 6.1.1, as older versions have bugs (6.2.X and 7.0.X are NOT supported either) 
+cd CMSSW_6_1_1/src 
+cmsenv
+git clone https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit
+</pre>
+* if you get errors related to ZLIB when doing the git clone, try instead doing the git clone before the cmsenv
+* when running with the !HybridNew calculator, you can safely ignore the following warning from RooFit%BR% ==WARNING:Eval – RooStatsUtils::MakeNuisancePdf - no constraints found on nuisance parameters in the input model==
+
+''Updating to a tag (both the first time and whenever there are updates)'' %BR%
+
+<pre>cd HiggsAnalysis/CombinedLimit
+git fetch origin
+git checkout v4.0.1-sl5
+scramv1 b clean; scramv1 b # always make a clean build, as scram doesn't always see updates to src/LinkDef.h
+</pre>
+—++++ %PURPLE%For developers%ENDCOLOR%
+
+We use the ''Fork and Pull'' model for development: each user creates a copy of the repository on github, commits their requests there and then sends pull requests for the administrators to merge (the admistrators are currently André, Giovanni, Nick and Mingshui )
+
+Prerequisites 1 Register on github, as needed anyway for CMSSW development: http://cms-sw.github.io/cmssw/faq.html 1 Register your SSH key on github: https://help.github.com/articles/generating-ssh-keys 1 Fork the repository to create your copy of it: https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/fork (more documentation at https://help.github.com/articles/fork-a-repo ) You will now be able to browse your fork of the repository from https://github.com/your-github-user-name/HiggsAnalysis-CombinedLimit
+
+''Setting up the environment (once)'' %BR% Get the SSH url of your forked copy from from github. You can find it in the bottom right of the github page for your repository. In my case, it’s ==git@github.com:gpetruc/HiggsAnalysis-CombinedLimit.git==
+
+<pre>setenv SCRAM_ARCH slc6_amd64_gcc481
+cmsrel CMSSW_7_1_5 ### must be a 7_1_X release  &gt;= 7_1_5;  (7.0.X and 7.2.X are NOT supported either) 
+cd CMSSW_7_1_5/src 
+cmsenv
+git clone git@github.com:your-user-name/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit
+cd HiggsAnalysis/CombinedLimit
+git remote add upstream  https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git
+git fetch upstream
+git checkout -b slc6-root5.34.17  upstream/slc6-root5.34.17 
+</pre>
+<b>Recommended way to develop a feature (in a branch)</b>%BR% https://blogs.atlassian.com/2013/07/git-upstreams-forks/
+
+<pre># get the updates of the master branch of the remote repository
+git fetch upstream
+
+# branch straight off the upstream master
+git checkout -b feature_name_branch upstream/slc6-root5.34.17 
+
+# implement the feature
+# commit, etc
+
+# before publishing:
+# get the updates of the master branch of the remote repository
+git fetch upstream
+# if you're ready to integrate the upstream changes into your repository do
+git rebase upstream/slc6-root5.34.17 
+# fix any conflicts
+git push origin feature_name_branch
+</pre>
+And proceed to make a pull request from the branch you created.
+
+<!--
+<b>Merging in changes from the main repository into your repository</b>%BR%
+https://help.github.com/articles/fork-a-repo
+<pre>
+# update your local repository to your remote repository
+git pull
+
+# get the updates of the slc6-root5.34.17  branch on the remote repository
+git fetch upstream slc6-root5.34.17 
+# see what has changed 
+git log origin/master..upstream/slc6-root5.34.17 
+# see in detail what has changed 
+git diff origin/master..upstream/slc6-root5.34.17 
+
+# if you're ready to integrate the upstream changes into your repository do
+git merge upstream/slc6-root5.34.17 
+# fix any conflicts
+git push
+</pre>   
+-->
+''Committing changes to your repository'' %BR%
+
+<pre>git add ....
+git commit -m "...."
+git push 
+</pre>
+''Making a pull request to have your commit/branch integrated upstream'' %BR% https://help.github.com/articles/using-pull-requests 1 go on your github page: https://github.com/your-github-user-name/HiggsAnalysis-CombinedLimit 1 click “pull request” at the right end of the gray bar %BR% <img alt="pull-request.png" height="155" src="%ATTACHURLPATH%/pull-request.png" width="796" /> 1 check that the diff below makes sense to you 1 enter some description of your change and press “create pull request” %BR% <img alt="pull-request-2.png" height="210" src="%ATTACHURLPATH%/pull-request-2.png" width="1004" /> %BR% <img alt="pull-request-3.png" height="368" src="%ATTACHURLPATH%/pull-request-3.png" width="938" />
+
+—+++ Legacy CVS recipe (NOT FOR DEVELOPMENT)
+
+%BLUE%<b>Production version</b>%ENDCOLOR%
+
+<pre>setenv SCRAM_ARCH slc5_amd64_gcc472 
+cmsrel CMSSW_6_1_1 ### must be &gt;= 6.1.1, as older versions have bugs
+cd CMSSW_6_1_1/src 
+cmsenv
+addpkg HiggsAnalysis/CombinedLimit V03-01-12
+scramv1 b
+</pre>
+NOTE: when running with the !HybridNew calculator, you can safely ignore the following warning from RooFit%BR% ==WARNING:Eval – RooStatsUtils::MakeNuisancePdf - no constraints found on nuisance parameters in the input model==
+
+''Changelog:''%BR% * new in ==V03-01-08== wrt to ==V03-01-06==: integration of Zγ pdfs and models, and some protection in !HybridNew for background models with no parameters * new in ==V03-01-06== wrt to ==V03-01-04==: fix F-C in !HybridNew for one-dimensional models (skipped one version due to a mistake) * new in ==V03-01-04== wrt ==V03-01-03==: fix a bug introduced in ==V03-01-01== that prevented running CLs with toys. * new in ==V03-01-03== wrt ==V03-01-02==: added a feature to create pseudo-Asimov datasets for models with more than one observable (still under testing, will be documented when done) * new in ==V03-01-02== wrt ==V03-01-01==: fix issues in toy mc generation when using channels a !RooDataHist with non-uniform binning as input
+
+%PURPLE% ''Old production version'' %ENDCOLOR%
+
+<pre style="background-color: #fff0c8;">setenv SCRAM_ARCH slc5_amd64_gcc434 
+cmsrel CMSSW_5_2_5   # or any 5.2.X, 5.3.X release
+cd CMSSW_5_2_5/src 
+cmsenv
+addpkg HiggsAnalysis/CombinedLimit V02-07-03
+scramv1 b
+</pre>
+NOTEs: * you can safely ignore the message complaining about ==/usr/lib64/libxml2.so.2: no version information available== * %RED%Do ''NOT'' use this release if you have 2D RooFit histograms with non-uniform binning.%ENDCOLOR%
+
+%RED% ''Development version'' %ENDCOLOR%
+
+<pre style="background-color: #ffb4b4;">setenv SCRAM_ARCH slc5_amd64_gcc472 
+cmsrel CMSSW_6_1_1
+cd CMSSW_6_1_1/src 
+cmsenv
+cvs co HiggsAnalysis/CombinedLimit
+scramv1 b
+</pre>
+NOTE: you can safely ignore the warning from RooFit%BR% ==WARNING:Eval – RooStatsUtils::MakeNuisancePdf - no constraints found on nuisance parameters in the input model==
+
+Note: If you’re using the ==tcsh== shell instead of the ==bash== one, you should also execute the command ==rehash== after you have compiled the program.
+
+The package contains one binary executable ==combine== which will take as input one datacard describing your model and compute a cross section limit or the significance of an observation.
+
+The package can also be combined against ROOT in a stand-alone mode (provided that Boost is available), although this is not officially supported. This can be achieved as follows:
+
+<verbatim style="background-color: #ffb4b4;"> cvs co -d ./ HiggsAnalysis/CombinedLimit cd CombinedLimit make export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:<code>pwd</code>/lib</verbatim>
+
+If your Boost includes are not in the default directory, you can edit the first line in the makefile so to specify the correct path.
+
+—++ FAQ
+
+—+++ Why does combine have trouble with bins that have zero expected contents?
+
+If you’re computing only upper limits, and your zero-prediction bins are all empty in data, then you can just set the background to a very small value instead of zero as anyway the computation is regular for background going to zero (e.g. a counting experiment with B&lt;&lt;1 will have essentially the same expected limit and observed limit as one with B=0).
+
+If you’re computing anything else, e.g. p-values, or if your zero-prediction bins are not empty in data, you’re out of luck, and you should find a way to get a reasonable background prediction there (and set an uncertainty on it, as per the point above)
+
+—+++ How can an uncertainty be added to a zero quantity?
+
+You can put an uncertainty even on a zero event yield if you use a gamma distribution. That’s in fact the more proper way of doing it if the prediction of zero comes from the limited size of your MC or data sample used to compute it.
+
+—+++ How does combine work?
+
+That is not a question which can be answered without someone’s head exploding so please try to formulate something specific.
+
+—++ Known issues
+
+—+++ Unbinned model fit to binned data
+
+Make sure your bins are sufficiently small to sidestep the way RooFit evaluates the pdf. [[#ParametricModelAndBinnedData][More details here.]]
+
+—++ Tutorials
+
+Here you’ll find instructions on how to run the package to compute the limit on a very simple datacard for a counting experiment. It assumes you have already checked out and compiled the package. For more advanced tutorials, please also see [[CMS/HiggsWG/SWGuideNonStandardCombineUses][this]] Twiki
+
+—+++ A simple counting experiment
+
+= DataCard =
+
+—++++ How to prepare the datacard
+
+The input datacard file is a plain ASCII file, [[https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/blob/master/data/tutorials/realistic-counting-experiment.txt][realistic-counting-experiment.txt]].
+
+The first lines can be used as a description and are not parsed by the program. They have to begin with a “#”:
+
+<verbatim> # Simple counting experiment, with one signal and a few background processes # Simplified version of the 35/pb H-&gt;WW analysis for mH = 160 GeV</verbatim>
+
+Then one declares the ''number of observables'', ==imax==, that are present in the model used to calculate limits/significances. The number of observables will typically be the number of channels in a counting experiment or the number of bins in a binned shape fit. (If one specifies for ==imax== the value ==*== it means “figure it out from the rest of the datacard”, but in order to better catch mistakes it’s recommended to specify it explicitly)
+
+<verbatim> imax 1 number of channels</verbatim>
+
+Then one declares the number of background sources to be considered, ==jmax==, and the number of ''independent sources of systematic uncertainties'', ==kmax==:
+
+<verbatim> jmax 3 number of backgrounds kmax 5 number of nuisance parameters (sources of systematic uncertainties)</verbatim>
+
+In the example there is 1 channel, there are 3 background sources, and there are 5 independent sources of systematic uncertainty.
+
+Then there are the lines describing what is actually observed: the number of events observed in each channel. The first line, starting with ==bin== defines the label used for each channel. In the example we have 1 channel, labelled ==1==, and in the following line, ==observation==, are listed the events observed, ==0== in this example: <verbatim> # we have just one channel, in which we observe 0 events bin 1 observation 0</verbatim>
+
+Following is the part related to the number of events expected, for each bin and process, arranged in (#channels)*(#processes) columns.
+
+<verbatim> bin 1 1 1 1 process ggH qqWW ggWW others process 0 1 2 3 rate 1.47 0.63 0.06 0.22</verbatim> * The ==bin== line identifies the channel the column is referring to. It goes from ==1== to the ==imax== declared above. * The first ==process== line contains the labels of the various sources * The second ==process== line must have a positive number for backgrounds, and ==0== or a negative number for the signals. You should use different process ids for different processes. * The last line, ==rate==, tells the expected yield of events in the specified bin and process All bins should be declared in increasing order, and within each bin one should include all processes in increasing order, specifying a ''0'' for processes that do not contribute.
+
+The last section contains the description of the systematic uncertainties:
+
+<verbatim> lumi lnN 1.11 - 1.11 - lumi affects both signal and gg-&gt;WW (mc-driven). lnN = lognormal xs_ggH lnN 1.16 - - - gg-&gt;H cross section + signal efficiency + other minor ones. WW_norm gmN 4 - 0.16 - - WW estimate of 0.64 comes from sidebands: 4 events in sideband times 0.16 (=&gt; ~50% statistical uncertainty) xs_ggWW lnN - - 1.50 - 50% uncertainty on gg-&gt;WW cross section bg_others lnN - - - 1.30 30% uncertainty on the rest of the backgrounds</verbatim> * the first columns is a label identifying the uncertainty * the second column identifies the type of distribution used * ==lnN== stands for [[http://en.wikipedia.org/wiki/Log-normal_distribution][Log-normal]], which is the recommended choice for multiplicative corrections (efficiencies, cross sections, …). %BR%If ''Δx/x'' is the relative uncertainty on the multiplicative correction, one should put ''1+Δx/x'' in the column corresponding to the process and channel * ==gmN== stands for [[http://en.wikipedia.org/wiki/Gamma_distribution][Gamma]], and is the recommended choice for the statistical uncertainty on a background coming from the number of events in a control region (or in a MC sample with limited statistics). %BR%If the control region or MC contains ''N'' events, and the extrapolation factor from the control region to the signal region is ''α'' then one shoud put ''N'' just after the ==gmN== keyword, and then the value of ''α'' in the proper column. Also, the yield in the ==rate== row should match with ''N''α'' '' ==lnU== stands for log-uniform distribution. A value of ''1+ε'' in the column will imply that the yield of this background is allowed to float freely between ''x''(1+ε)* and ''x/(1+ε)'' (in particular, if ε is small, then this is approximately ''(x-Δx,x+Δx)'' with ''ε = Δx/x'' ) %BR% This is normally useful when you want to set a large a-priori uncertainty on a given background and then rely on the correlation between channels to constrain it. Beware that while Gaussian-like uncertainties behave in a similar way under profiling and marginalization, uniform uncertainties do not, so the impact of the uncertainty on the result will depend on how the nuisances are treated. * then there are (#channels)*(#processes) columns reporting the relative effect of the systematic uncertainty on the rate of each process in each channel. The columns are aligned with the ones in the previous lines declaring bins, processes and rates.
+
+In the example, there are 5 uncertainties: * the first uncertainty affects the signal by 11%, and affects the ==ggWW== process by 11% * the second uncertainty affects the signal by 16% leaving the backgrounds unaffected * the third line specifies that the ==qqWW== background comes from a sideband with 4 observed events and an extrapolation factor of 0.16; the resulting uncertainty on the expected yield is ''1/sqrt(4+1) = 45%'' * the fourth uncertainty does not affect the signal, affects the =ggWW== background by 50%, leaving the other backgrounds unaffected * the last uncertainty does not affect the signal, affects by 30% the ==others== backgrounds, leaving the rest of the backgrounds unaffected
+
+—++++ How to run the tool
+
+The executable ==combine== provided by the package allows to use the Higgs Combination Tool indicating by command line which is the method to use for limit combination and which are user’s preferences to run it. To see the entire list of all available options ask for the help: <verbatim> combine –help</verbatim>
+
+The option ==-M== allows to chose the method used. There are several statistical methods: * ''Asymptotic'' likelihood methods: * ==Asymptotic==: asymptotic CL<sub>S</sub> limits according to the formulas in [[http://arxiv.org/abs/1007.1727][arxiv:1007.1727]] * ==ProfileLikelihood==: simple profile likelihood approximation, for significances. %RED%DO NOT use this for limits, use Asymptotic instead.%ENDCOLOR% * ''Bayesian'' methods: * ==BayesianSimple==: performing a classical numerical integration (for simple models only) * ==MarkovChainMC==: performing Markov Chain integration, for arbitrarily complex models. * ''Frequentist'' or hybrid bayesian-frequentist methods: * ==HybridNew==: compute modified frequentist CL<sub>S</sub> limits according to several possible prescriptions (%RED% there’s also and an old and deprecated version called just ==Hybrid== %ENDCOLOR%) * ==FeldmanCousins==: compute Feldman Cousins intervals for simple models (%RED%not commissioned yet; better use !HybridNew%ENDCOLOR%) * Miscellaneous other modules that don’t compute limits but use the same framework: * ==MaxLikelihoodFit==: perform a maximum likelihood fit to extract the signal yield * ==GoodnessOfFit==: perform a goodness of fit test for models including shape information * ==ChannelConsistencyCheck==: check how consistent are the individual channels of a combination are
+
+%TWISTY{mode=“div” showlink=“The command =help= details” hidelink=“Hide” firststart=“hide” showimgright=“%ICONURLPATH{toggleopen-small}%” hideimgright=“%ICONURLPATH{toggleclose-small}%”}% The command help is organized into five parts: * ''Main options'' section indicates how to pass the datacard as input to the tool (==-d datacardName==) and how to choose the statistical method (==-M methodName==) to compute a limit. * ''Common statistics options'' include options common to different statistical methods such as ==-S==, used to indicate weather to include or not systematics (default is 1, include them), ==-C== to specify the CL (default is 0.95) or ==-t== to give the number of toy MC extractions required. * ''Common input-output options''. Is it possible to specify hypothesis mass point under analysis using ==-m== or ask for saving workspace using ==-saveWorkspace==. * ''Common miscellaneous options''. * Method specific options sections are dedicated to each method.
+
+Those options reported above are just a sample of all available.The command help provides a good documentation of all of them. %ENDTWISTY%
+
+—+++++ Computing limits with the asymptotic CL<sub>S</sub> method
+
+A realistic example of datacard for a counting experiment can be found in the !HiggsCombination package: [[https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/blob/master/data/tutorials/realistic-counting-experiment.txt][realistic-counting-experiment.txt]]
+
+The asymptotic CL<sub>S</sub> method allows to compute quickly an estimate of the observed and expected limits, which is fairly accurate when the event yields are not too small and the systematical uncertainties don’t play a major role in the result. Just do%BR%
+
+<verbatim> combine -M Asymptotic realistic-counting-experiment.txt</verbatim>
+
+The program will print out the limit on the signal strength r (number of signal events / number of expected signal events) e .g. =Observed Limit: r &lt; 1.6297 @ 95% CL= , the median expected limit =Expected 50.0%: r &lt; 2.3111= and edges of the 68% and 95% ranges for the expected limits.%BR%
+
+%TWISTY{mode=“div” showlink=“Asymptotic limit output” hidelink=“Hide” firststart=“hide” showimgright=“%ICONURLPATH{toggleopen-small}%” hideimgright=“%ICONURLPATH{toggleclose-small}%”}% <verbatim> &gt;&gt;&gt; including systematics &gt;&gt;&gt; method used to compute upper limit is Asymptotic […] – Asymptotic – Observed Limit: r &lt; 1.6297 Expected 2.5%: r &lt; 1.2539 Expected 16.0%: r &lt; 1.6679 Expected 50.0%: r &lt; 2.3111 Expected 84.0%: r &lt; 3.2102 Expected 97.5%: r &lt; 4.2651
+
+Done in 0.01 min (cpu), 0.01 min (real)</verbatim>
+
+%ENDTWISTY%
+
+The program will also create a rootfile =higgsCombineTest.Asymptotic.mH120.root= containing a root tree =limit= that contains the limit values and other bookeeping information. The important columns are =limit= (the limit value) and =quantileExpected= (-1 for observed limit, 0.5 for median expected limit, 0.16/0.84 for the edges of the ±1σ band of expected limits, 0.025/0.975 for ±2σ). %TWISTY{mode=“div” showlink=“Show tree contents” hidelink=“Hide” firststart=“hide” showimgright=“%ICONURLPATH{toggleopen-small}%” hideimgright=“%ICONURLPATH{toggleclose-small}%”}%
+
+<pre>$ root -l higgsCombineTest.Asymptotic.mH120.root 
+root [0] limit-&gt;Scan("*")
+************************************************************************************************************************************
+*    Row   *     <b>limit</b> *  limitErr *        mh *      syst *      iToy *     iSeed *  iChannel *     t_cpu *    t_real * <b>quantileExpected</b> *
+************************************************************************************************************************************
+*        0 * 1.2539002 *         0 *       120 *         1 *         0 *    123456 *         0 *         0 *         0 * 0.0250000 *
+*        1 * 1.6678826 *         0 *       120 *         1 *         0 *    123456 *         0 *         0 *         0 * 0.1599999 *
+*        2 * <b style='color: blue;'>2.3111260</b> *         0 *       120 *         1 *         0 *    123456 *         0 *         0 *         0 *       <b style='color: blue;'>0.5</b> * <i style='color: blue;'> &larr; median expected limit</i>
+*        3 * 3.2101566 *         0 *       120 *         1 *         0 *    123456 *         0 *         0 *         0 * 0.8399999 *
+*        4 * 4.2651203 *         0 *       120 *         1 *         0 *    123456 *         0 *         0 *         0 * 0.9750000 *
+*        5 * <b style='color: red;'>1.6296688</b> * 0.0077974 *       120 *         1 *         0 *    123456 *         0 * 0.0049999 * 0.0050977 *        <b style='color: red;'>-1</b> *<i style='color: red;'> &larr; observed limit</i>
+************************************************************************************************************************************
+</pre>
+%ENDTWISTY%
+
+A few command line options of =combine= can be used to control this output: * The option ==-n== allows you to specify part of the name of the rootfile. e.g. if you do ==-n HWW== the roofile will be called =higgsCombineHWW….= instead of =higgsCombineTest= * The option ==-m== allows you to specify the higgs boson mass, which gets written in the filename and also in the tree (this simplifies the bookeeping because you can merge together multiple trees corresponding to different higgs masses using =hadd= and then use the tree to plot the value of the limit vs mass) (default is m=120)
+
+There are some common configurables that apply to all methods: * ==H==: run first another faster algorithm (e.g. the !ProfileLikelihood described below) to get a hint of the limit, allowing the real algorithm to converge more quickly. We ''strongly recommend'' to use this option when using !MarkovChainMC, !HybridNew, !Hybrid or !FeldmanCousins calculators, unless you know in which range your limit lies and you set it manually (the default is =[0, 20]=) * ==rMax==, ==rMin==: manually restrict the range of signal strengths to consider. For Bayesian limits with MCMC, =rMax= a rule of thumb is that rMax should be 3-5 times the limit (a too small value of =rMax= will bias your limit towards low values, since you are restricting the integration range, while a too large value will bias you to higher limits) * ==S==: if set to 1 (default), ''systematic uncertainties'' are taken into account; if set to 0, only statistical uncertainties are considered. If your model has no systematic uncertainties, this flag has no effect. In example reported above the option S has been not specified, and systematics have been included.
+
+Most methods have multiple configuration options; you can get a list of all them by invoking ==combine –help==
+
+—+++++ Computing the observed limit with the profile likelihood approximation
+
+''%RED%The !ProfileLikelihood calculator for upper limits is NOT recommended, and should NOT be used in any real result (though it can be used for providing a starting guess to the bayesian or toy-based methods). For asymptotic limits, use the Asymptotic calculator.%ENDCOLOR%. %BR% %BLUE%The usage of the !ProfileLikelihood calculator for significances and p-values is instead still the recommended choice.%ENDCOLOR%''
+
+The “profile likelihood approximation” is another asymptotic method, conceptually similar to the previous one but even simpler. It provides a quick estimate of the observed limit only and can be over-aggressive in the case of low statistics.
+
+To compute a limit quickly using the profile likelihood approximation, just do%BR%
+
+<verbatim> combine -M ProfileLikelihood realistic-counting-experiment.txt</verbatim>
+
+%TWISTY{mode=“div” showlink=“ProfileLikelihood limit output” hidelink=“Hide” firststart=“hide” showimgright=“%ICONURLPATH{toggleopen-small}%” hideimgright=“%ICONURLPATH{toggleclose-small}%”}% <verbatim> &gt;&gt;&gt; including systematics &gt;&gt;&gt; method used to compute upper limit is ProfileLikelihood &gt;&gt;&gt; random number generator seed is 123456 Computing limit starting from observation 1) RooRealVar:: n_obs_binbin1 = 0
+
+– Profile Likelihood – Limit: r &lt; 1.3488 @ 95% CL Done in 0.00 min (cpu), 0.00 min (real)</verbatim>
+
+%ENDTWISTY%
+
+To get more details on options specific to the !ProfileLikelihood, please, refer to the section [[#ProfiLe][ProfileLikelihood algorithm]] ProfileLikelihood is approximate, fast, works decently if you expect a large number of signal and background events. In some rare cases it fails due to numerical issues. Other statistical methods are available, and can be selected by passing different arguments to the option ==-M==.
+
+—+++++ Computing the observed bayesian limit (for simple models)
+
+The !BayesianSimple computes a Bayesian limit performing classical numerical integration; very fast and accurate but only works for simple models (a few channels and nuisance parameters). You can specify the prior using the ==–prior== option (default is a flat pior) <verbatim> combine -M BayesianSimple realistic-counting-experiment.txt</verbatim>
+
+%TWISTY{mode=“div” showlink=“BayesianSimple limit output” hidelink=“Hide” firststart=“hide” showimgright=“%ICONURLPATH{toggleopen-small}%” hideimgright=“%ICONURLPATH{toggleclose-small}%”}% <verbatim> – BayesianSimple – Limit: r &lt; 2.25258 @ 95% CL</verbatim>
+
+%ENDTWISTY%
+
+—+++++ Computing the observed bayesian limit (for arbitrary models)
+
+The !MarkovChainMC method computes a Bayesian limit performing a monte-carlo integration. From the statistics point of view it is identical to the !BayesianSimple method, only the technical implementation is different.
+
+The !MarkovChainMC is slower, but can also handle complex models. For this method, you can increase the accuracy of the result by increasing the number of markov chains at the expense of a longer running time (option ==–tries==, default is 10) . The same datacard used in the previous example can be given as input to the combine tool also in case the method to be used is different from the !ProfileLikelihood one.
+
+To use the !MarkovChainMC method, users need to specify this method in the command line, together with the options they want to use. For instance, to set the number of times the algorithm will run with different random seeds, use option ==–tries==: <verbatim> combine -M MarkovChainMC realistic-counting-experiment.txt –tries 100</verbatim>
+
+A list of options available to configure the !MarkovChain parameters is available in [[#MarkoV][MarkovChainMC algorithm]].
+
+%TWISTY{mode=“div” showlink=“MarkovChainMC limit output” hidelink=“Hide” firststart=“hide” showimgright=“%ICONURLPATH{toggleopen-small}%” hideimgright=“%ICONURLPATH{toggleclose-small}%”}% <verbatim> – MarkovChainMC – Limit: r &lt; 2.12465 +/- 0.0209867 @ 95% CL (100 tries) Average chain acceptance: 0.456068</verbatim>
+
+%ENDTWISTY%
+
+—+++++ Computing the observed bayesian limit (for arbitrary models, alternative option)
+
+The !BayesianToyMC method computes a Bayesian limit performing a monte-carlo integration of the nuisances combined with a traditional numerical integration of the posterior. From the statistics point of view it is identical to the !BayesianSimple and !MarkovChainMC methods, only the technical implementation is different.
+
+Just like the !MarkovChainMC this method can cope with an arbitrary number of nuisances, provided they all have an associated constraint term (i.e. ==lnN==, ==gmN==, ==param== nuisances are ok, while ==lnU== and ==flatParam== nuisances are not). It is more accurate than !MarkovChainMC if the nuisances are mostly irrelevant, while it is less efficient if the nuisances are strongly constrained by the data. <verbatim> combine -M BayesianToyMC –tries 10 realistic-counting-experiment.txt</verbatim>
+
+%TWISTY{mode=“div” showlink=“MarkovChainMC limit output” hidelink=“Hide” firststart=“hide” showimgright=“%ICONURLPATH{toggleopen-small}%” hideimgright=“%ICONURLPATH{toggleclose-small}%”}%
+
+<verbatim> &gt;&gt;&gt; including systematics &gt;&gt;&gt; method used to compute upper limit is BayesianToyMC […] Computing limit starting from observation PosteriorFunctionFromToyMC::DoEval - Error in estimating posterior is larger than 20% ! x = 10.8 p(x) = 0.000609334 +/- 0.000205276 […] – BayesianToyMC – Limit: r &lt; 2.1751 +/- 0.000880874 @ 95% CL Done in 0.34 min (cpu), 0.34 min (real)</verbatim>
+
+%ENDTWISTY%
+
+Complaints from the code in the form ==PosteriorFunctionFromToyMC::DoEval - Error in estimating posterior is larger than 20%== can be ignored if they refer to parameter values much larger than where the limit is.
+
+—+++++ Computing modified frequentist and hybrid limits (“CLs”)
+
+The !HybridNew method is used to compute either the hybrid bayesian-frequentist limits popularly known as “CLs of LEP or Tevatron type” or the fully frequentist limits which are the current recommended method by the LHC Higgs Combination Group. Note that these methods can be resource intensive for complex models.
+
+Example hybrid limit
+
+<verbatim> combine -M HybridNew –rule CLs –testStat LEP realistic-counting-experiment.txt </verbatim>
+
+%TWISTY{mode=“div” showlink=“Hybrid limit output” hidelink=“Hide” firststart=“hide” showimgright=“%ICONURLPATH{toggleopen-small}%” hideimgright=“%ICONURLPATH{toggleclose-small}%”}% <verbatim> – Hybrid New – Limit: r &lt; 1.8689 +/- 0.0883537 @ 95% CL</verbatim>
+
+%ENDTWISTY%
+
+Example frequentist limit (note: it takes ~20 minutes to run)
+
+<verbatim> combine -M HybridNew –frequentist –testStat LHC realistic-counting-experiment.txt -H ProfileLikelihood –fork 4</verbatim>
+
+(the last two options specify to use the Profile likelihood to get a hint of where the limit is, and to use 4 CPUs to run the computation)
+
+%TWISTY{mode=“div” showlink=“Hybrid limit output” hidelink=“Hide” firststart=“hide” showimgright=“%ICONURLPATH{toggleopen-small}%” hideimgright=“%ICONURLPATH{toggleclose-small}%”}% <verbatim> &gt;&gt;&gt; including systematics &gt;&gt;&gt; using the Profile Likelihood test statistics modified for upper limits (Q_LHC) &gt;&gt;&gt; method used to compute upper limit is HybridNew &gt;&gt;&gt; method used to hint where the upper limit is ProfileLikelihood &gt;&gt;&gt; random number generator seed is 123456 Computing limit starting from observation 1) RooRealVar:: n_obs_binbin1 = 0
+
+– Profile Likelihood – Limit: r &lt; 1.3488 @ 95% CL Search for upper limit to the limit r = 4.04641 +/- 0 CLs = 0.0111304 +/- 0.0113162 CLs = 0.0111304 +/- 0.0113162 CLb = 0.179688 +/- 0.0339347 CLsplusb = 0.002 +/- 0.001998
+
+Search for lower limit to the limit r = 0.404641 +/- 0 CLs = 0.521143 +/- 0.108625 CLs = 0.521143 +/- 0.108625 CLb = 0.21875 +/- 0.0365396 CLsplusb = 0.114 +/- 0.014213
+
+Now doing proper bracketing &amp; bisection r = 2.62397 +/- 0.591673 CLs = 0.0365714 +/- 0.027407 CLs = 0.0214202 +/- 0.00665987 CLs = 0.0214202 +/- 0.00665987 CLb = 0.205414 +/- 0.0161215 CLsplusb = 0.0044 +/- 0.00132373
+
+r = 2.03453 +/- 0.163374 CLs = 0.0667826 +/- 0.0298909 CLs = 0.0633461 +/- 0.0128557 CLs = 0.0569147 +/- 0.00899877 CLs = 0.0541121 +/- 0.0069727 CLs = 0.051508 +/- 0.00596975 CLs = 0.0517999 +/- 0.00538427 CLs = 0.0512396 +/- 0.00484466 CLs = 0.0512396 +/- 0.00484466 CLb = 0.201407 +/- 0.00717078 CLsplusb = 0.01032 +/- 0.000903925
+
+Trying to move the interval edges closer r = 1.21959 +/- 0 CLs = 0.21504 +/- 0.0599829 CLs = 0.166148 +/- 0.0221585 CLs = 0.166148 +/- 0.0221585 CLb = 0.202229 +/- 0.0160281 CLsplusb = 0.0336 +/- 0.00360394
+
+r = 1.62706 +/- 0 CLs = 0.132741 +/- 0.0416927 CLs = 0.0916788 +/- 0.0145844 CLs = 0.0960705 +/- 0.0116838 CLs = 0.0960705 +/- 0.0116838 CLb = 0.201241 +/- 0.0119375 CLsplusb = 0.0193333 +/- 0.00205262
+
+r = 1.8308 +/- 0 CLs = 0.0474074 +/- 0.0225982 CLs = 0.0658885 +/- 0.0127515 CLs = 0.0702351 +/- 0.0101692 CLs = 0.0704173 +/- 0.00826929 CLs = 0.0663953 +/- 0.00696987 CLs = 0.0639131 +/- 0.00609932 CLs = 0.06256 +/- 0.00553364 CLs = 0.0626397 +/- 0.00511956 CLs = 0.0615551 +/- 0.00471436 CLs = 0.0615551 +/- 0.00471436 CLb = 0.198886 +/- 0.00621268 CLsplusb = 0.0122424 +/- 0.000856085
+
+r = 1.9836 +/- 0 CLs = 0.0746667 +/- 0.0312095 CLs = 0.0523333 +/- 0.0112658 CLs = 0.0510206 +/- 0.00807597 CLs = 0.0534522 +/- 0.00687986 CLs = 0.0558927 +/- 0.00616208 CLs = 0.0571814 +/- 0.00560075 CLs = 0.0582696 +/- 0.00522627 CLs = 0.0570177 +/- 0.00472877 CLs = 0.0570177 +/- 0.00472877 CLb = 0.205623 +/- 0.00670989 CLsplusb = 0.0117241 +/- 0.000893914
+
+r = 2.32925 +/- 0 CLs = 0.0353103 +/- 0.0185058 CLs = 0.036761 +/- 0.00913074 CLs = 0.0289231 +/- 0.00579919 CLs = 0.0289231 +/- 0.00579919 CLb = 0.207447 +/- 0.0120729 CLsplusb = 0.006 +/- 0.00115123
+
+r = 2.18189 +/- 0 CLs = 0.0808421 +/- 0.0370011 CLs = 0.04396 +/- 0.0102116 CLs = 0.0387296 +/- 0.00681475 CLs = 0.0418682 +/- 0.00593202 CLs = 0.0407685 +/- 0.00512298 CLs = 0.0345699 +/- 0.00419126 CLs = 0.0345699 +/- 0.00419126 CLb = 0.206621 +/- 0.00789796 CLsplusb = 0.00714286 +/- 0.000821835
+
+r = 2.10821 +/- 0 CLs = 0.0746667 +/- 0.0312095 CLs = 0.0589774 +/- 0.0123346 CLs = 0.0496916 +/- 0.00793804 CLs = 0.0510345 +/- 0.00679953 CLs = 0.0514744 +/- 0.00589433 CLs = 0.0481132 +/- 0.00517457 CLs = 0.0468191 +/- 0.00464286 CLs = 0.0468191 +/- 0.00464286 CLb = 0.19821 +/- 0.00712787 CLsplusb = 0.00928 +/- 0.000857619
+
+– HybridNew, before fit – Limit: r &lt; 2.03453 +/- 0.163374 [1.9836, 2.10821] Fit to 5 points: 2.05027 +/- 0.0177335
+
+– Hybrid New – Limit: r &lt; 2.05027 +/- 0.0177335 @ 95% CL Done in 0.55 min (cpu), 17.26 min (real)</verbatim>
+
+%ENDTWISTY%
+
+%H% More information about the !HybridNew parameters is available in [[#HybridNew][HybridNew algorithm]] section below. Instructions on how to use the !HybridNew for complex models where running the limit in a single job is not practical are also provided in the section [[#HybridNewGrid][HybridNew algorithm and grids]]
+
+—+++++ Computing Feldman-Cousins bands for simple models
+
+%RED% %X% NOTE: this method has never been tested rigorously and is known to have problems for complex models. It is NOT recommended. If you want to do F-C, follow the [[%SCRIPTURL{“view”}%auth/CMS/SWGuideHiggsAnalysisCombinedLimit#Feldman_Cousins_regions][generic instructions to run it with !HybridNew]].%ENDCOLOR%
+
+Uses the F-C procedure to compute a confidence interval which could be either 1 sided or 2 sided. When systematics are included, the profiled likelihood is used to define the ordering rule. <verbatim> combine -M FeldmanCousins realistic-counting-experiment.txt </verbatim>
+
+%TWISTY{mode=“div” showlink=“Feldman-Cousins limit output” hidelink=“Hide” firststart=“hide” showimgright=“%ICONURLPATH{toggleopen-small}%” hideimgright=“%ICONURLPATH{toggleclose-small}%”}% <verbatim> – FeldmanCousins++ – Limit: r&lt; 0.625 +/- 0.0625 @ 95% CL</verbatim>
+
+%ENDTWISTY%
+
+To compute the lower limit instead of the upper limit specify the option ==–lowerLimit==: <verbatim> combine -M FeldmanCousins –lowerLimit realistic-counting-experiment.txt </verbatim>
+
+%TWISTY{mode=“div” showlink=“Feldman-Cousins limit output” hidelink=“Hide” firststart=“hide” showimgright=“%ICONURLPATH{toggleopen-small}%” hideimgright=“%ICONURLPATH{toggleclose-small}%”}% <verbatim> – FeldmanCousins++ – Limit: r&gt; 0.05 +/- 0.05 @ 95% CL</verbatim>
+
+%ENDTWISTY%
+
+—++++ Compute the observed significance
+
+Just add the option ==–signif== and the program will compute the significance instead of the limit. %BR% ==combine -M !ProfileLikelihood –signif datacard.txt==
+
+You can use the ==–signif== option with the with !ProfileLikelihood and !HybridNew methods. For the hybrid methods, there is no adaptive MC generation so you need to specify the number of toys to run (option ==-T==), and you might want to split this computation in multiple jobs (instructions are below in the [[[#hybridnew|#HybridNew]]] section)
+
+—++++ Maximum likelihood fits and diagnostics
+
+If you have already found the higgs boson but it’s an exotic one, instead of computing a limit or significance you might want to extract it’s cross section by performing a maximum-likelihood fit. Or, more seriously, you might want to use this same package to extract the cross section of some other process (e.g. the di-boson production). Or you might want to know how well the data compares to you model, e.g. how strongly it constraints your other nuisance parameters, what’s their correlation, …
+
+Running the !MaxLikelihoodFit tool as %BR%
+
+<verbatim> combine -M MaxLikelihoodFit datacard.txt </verbatim>
+
+The program will print out the result of the two fits performed with signal strength set to zero and with floating signal strength, and the output root tree will contain the best fit value for the signal strength, and it’s uncertainty. You will also get a =mlfit.root= file containing the following objects: | ==nuisances_prefit== | =RooArgSet= containing the pre-fit values of the nuisance parameters, and their uncertainties from the external constraint terms only | | ==fit_b== | =RooFitResult= object containing the outcome of the fit of the data with signal strength set to zero | | ==fit_s== | =RooFitResult= object containing the outcome of the fit of the data with floating signal strength | | ==covariance_fit_s== | =TH2D= Covariance matrix of the parameters in the fit with signal strength set to zero | | ==covariance_fit_b== | =TH2D= Covariance matrix of the parameters in the fit with floating signal strength | It is possible to compare pre-fit and post-fit nuisance parameters with the script [[https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/blob/master/test/diffNuisances.py][diffNuisances.py]]. Taking as input a =mlfit.root= file, the script will by default print out the parameters which have changed significantly w.r.t. their initial estimate. For each of those parameters, it will print out the shift in value and the post-fit uncertainty, both normalized to the input values, and the linear correlation between the parameter and the signal strength.
+
+<verbatim> python diffNuisances.py mlfit.root </verbatim>
+
+The script has several options to toggle the thresholds used to decide if a parameter has changed significantly, to get the printout of the absolute value of the nuisance parameters, and to get the output in another format for easy cut-n-paste (supported formats are =html=, =latex=, =twiki=). In addition, this script has the option (=-g outputfile.root=) to produce plots of the fitted values of the nuisance parameters and their post-fit uncertainties as well as a plot showing directly a comparison of the post-fit to pre-fit nuisance uncertainties.
+
+''Background normalizations'' %BR% For a certain class of models, like those made from datacards for shape-based analysis, the tool can also compute and save to the output root file the best fit yields of all background processes. If this feature is turned on with the option ==–saveNormalizations==, the output root file will contain also two !RooArgSet =norm_fit_s=, =norm_fit_b= objects each containing one !RooConstVar for each channel =xxx= and process =yyy= with name =xn_exp_bin&lt;xxx&gt;''proc''&lt;xxx&gt;= and value equal to the best fit yield. In the future, also the uncertainties on those yields will be reported. %BR% Note that this procedure works only for “extended likelihoods” like the ones used in shape-based analysis, not for the cut-and-count datacards. You can however convert a cut-and-count datacard in an equivalent shape-based one by adding a line =shapes * * FAKE= in the datacard after the =imax=, =jmax=, =kmax=.
+
+The sample pyroot macro [[https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/blob/master/test/mlfitNormsToText.py][mlfitNormsToText.py]] can be used to convert the root file into a text table with four columns: channel, process, yield from the signal+background fit and yield from the background-only fit.
+
+''Plots'' %BR% !MaxLikelihoodFit can also produce pre- and post-fit plots of data and input model in the same directory as =mlfit.root=. To get them, you have to specify the option ==–plots==, and then ''optionally specify'' what are the names of the signal and background pdfs, e.g. ==–signalPdfNames=‘ggH'',vbfH''’== and ==–backgroundPdfNames=‘''DY'',''WW'',''Top''’= (by default, the definitions of signal and background are taken from the datacard). In this case you might want to use the option ==–out== to specify the output directory where to write files. %RED% Currently this is very very crude, ''and in some cases (eg binned pdfs with different bin widths) will give incorrect results so their interpretation should be taken with extreme caution''. If people find it useful they could consider contributing to its development.
+
+An alternative is to use the options =–saveShapes= (=–saveWithUncertainties= for adding post-fit uncertainties). The result will be additional folders in =mlfit.root= for each category, with pre and post-fit distributions of the signals and backgrounds (as TH1). These distributions and normalisations are guaranteed to give the correct interpretation however, the data is not included. This can be taken of course from the input workspaces (adding a histogram for the data is currently in development). It should be noted that for shape datacards whose inputs are TH1, these histograms will have the bin number as the x-axis and the content of each bin will be a number of events. Instead for datacards whose inputs are RooAbsPdf, the x-axis will correspond to the observable and the bin content will be the PDF density (i.e the number of events in a given bin, i, can be obtained from h-&gt;GetBinContent(i)*h-&gt;GetBinWidth(i) ).
+
+—+++++ Fit options
+
+* If you need only the signal+background fit, you can run with ==–justFit==. This can be useful if the background-only fit is not interesting or not converging (e.g. if the significance of your signal is very very large)
+* You can use ==–rMin== and ==–rMax== to set the range of the parameter; a range that is not too large compared to the uncertainties you expect from the fit usually gives more stable and accurate results.
+* By default, the uncertainties are computed using MINOS; if this fails to converge, you can try running with ==–robustFit=1== that will do a slower but more robust likelihood scan; this can be further controlled by the parameter ==–stepSize== (the default is 0.1, and is relative to the range of the parameter)
+* Different configurations of the fitter can be tested to debug convergence problems:
+** ==–minimizerAlgo== can be set to =Minuit2= (default) or =Minuit=
+** ==–minimizerTolerance== can be varied between 0.0001 and 1.0 or more (the default is 0.01); smaller tolerances can give a more accurate result and avoid false minima, while larger tolerances can allow a complex fit to converge to a satisfactory result rather than giving up.
+** ==–minimizerStrategy== can be set to 1 (default), 0 or 2; larger values correspond to using more derivatives in the fit, which is slower but can give better or more stable results for smooth pdfs (and can result in failures for less smooth pdfs)
+
+—+++++ Toy-by-toy diagnostics
+
+!MaxLikelihoodFit can also be used to diagnose the fitting procedure in toy experiments to identify potentially problematic nuisance parameters when running the full limits/p-values. This can be done by adding the option -t Ntoys. The output file will contain two trees, one for the background only fit and one for the signal + background, which contain the value of the constraint fitted result in each toy. It is recommended to use the following options when investigating toys to reduce the running time: ==–toysFrequentist== ==–noErrors== ==–minos none==
+
+The results can be plotted using plotParametersFromToys.C.
+
+<verbatim> plotParametersFomToys(“mlfittoys.root”,“mlfitdata.root”,“workspace.root”,“mu&lt;0”)</verbatim>
+
+The first argument is the name of the output file from running with toys, and the second and third (optional) arguments are the name of the file containing the result from a fit to the data and the workspace. The fourth argument can be used to specify a cut string applied to one of the branches in the tree which can be used to correlate strange behaviour with specific conditions.
+
+—+++++ Calculate expected precision on signal strength
+
+In order to estimate the error on the signal strength using MC information only (Asimov dataset): <verbatim> combine -M MaxLikelihoodFit –expectSignal=1 -t -1 datacard.txt</verbatim>
+
+* ==expectSignal== is the simulated signal strength
+* ==-t -1== is to use the Asimov dataset
+* If interested only in the the outcome of the s+b fit, then add an extra ==–justFit== which will skip the background-only fit and the rest of the diagnostics.
+
+—++++ Computing the expected limit (bayesian or likelihood methods)
+
+For bayesian or likelihood-based limits, the expected limit is computed by generating many toy mc observations and compute the limit for each of them. This can be done passing the option ==-t== . E.g. to run 100 toys with the !ProfileLikelihood method, just do %BR%
+
+<verbatim> combine -M ProfileLikelihood datacard.txt -t 100</verbatim>
+
+The program will print out the mean and median limit, and the 68% and 95% quantiles of the distributions of the limits. Also, the output root tree will contain one entry per toy.
+
+While for a simple method and the !ProfileLikelihood method it can be feasible to run all the toys in a single job, for more heavy methods you’ll probably want to split this in multiple jobs. To do this, just run =combine= multiple times specifying a smaller number of toys (can be as low as =1=) each time using a different seed to initialize the random number generator (option ==-s==; if you set it to -1, the starting seed will be initialized randomly at the beginning of the job), then merge the resulting trees with =hadd= and look at the distribution in the merged file.
+
+Macros to turn the rootfiles into bands will be committed to the cvs soon.
+
+—++++ Computing the expected limit (hybrid or frequentist methods)
+
+There are two possible approaches for computing expected limits with !HybridNew, depending on the the complexity of the model. * Run interactively 5 times to compute the median expected and the +/- 1 and +/- 2 sigma lines * Produce once a grid of test statistics distributions at various values of the signal strength, and use it to compute the observed and expected limit and bands The first approach is good for simple models, the second is good for complex models since the grid of points can be distributed across any number of jobs.
+
+For the first approach, just run interactively !HybridNew with the same options as per the observed limit but adding a ==–expectedFromGrid=&lt;quantile&gt;== where the quantile is 0.5 for the median, 0.84 for the +1 sigma band, 0.16 for the -1 sigma band, 0.975 for the +2 sigma band, 0.025 for the -2 sigma band.
+
+For the second approach, read under [[%SCRIPTURL{“view”}%auth/CMS/SWGuideHiggsAnalysisCombinedLimit#HybridNew_algorithm_usage_for_co][HybridNew and grids]].
+
+—++++ Computing the expected significance (from asymptotic)
+
+The expected significance can be computed either from an Asimov dataset of signal+background or from toys of (signal+background). For both approaches, there are two alternative definitions: * a positeriori expected: depends on the observed dataset. * a priori expected: does not depend on the observed dataset, and so is a good metric for optimizing an analysis when still blinded.
+
+The a-posteriori expected significance from the Asimov dataset, which is what was used for the Higgs search results in 2012, is
+
+<verbatim> combine -M ProfileLikelihood –significance datacard.txt -t -1 –expectSignal=1 –toysFreq</verbatim>
+
+the a-priori expectation can be computed in a very similar way by omitting the ==–toysFreq== argument
+
+<verbatim> combine -M ProfileLikelihood –significance datacard.txt -t -1 –expectSignal=1</verbatim>
+
+The a-posteriori and a-priori expected significances with the toys can be computed in the similar way but replacing ==-t -1== with ==-t N== (N being the number of toys to run). As for other toy-based computations, the task can be split in multiple jobs run with different random number generator seeds (option ==-s==)
+
+The output format is the same as for expected limits: the variable ==limit== in the tree will be filled with the significance (or with the p-value if you put also the option ==–pvalue==)
+
+—++++ Computing the expected significance (toys)
+
+Computation of expected significance with toys is a two step procedure: first you need to run one or more jobs to construct the expected distribution of the test statistics, e.g. %BR%
+
+<verbatim> combine -M HybridNew –frequentist datacard.txt –significance [ –pvalue ] –saveToys –fullBToys –saveHybridResult -T toys -i iterations -s seed </verbatim>
+
+then you can merge all those results into a single root file with ==hadd== and compute the median expected significance as
+
+<verbatim> combine -M HybridNew –frequentist datacard.txt –significance [ –pvalue ] –readHybridResult –toysFile=input.root –expectedFromGrid=0.5</verbatim>
+
+to get edges the ±1σ bands, use 0.16 and 0.84 instead of 0.5, and so on…
+
+Note that you need a total number of background toys large enough to compute the value of the significance, but you need less signal toys (especially if you only need the median). For large significance, you can then run most of the toys without the ==–fullBToys== limit (about a factor 2 faster), and only a smaller part with that option turned on.
+
+—++++ Goodness of fit tests
+
+The !GoodnessOfFit module can be used to evaluate how compatible the observed data are with the model p.d.f.
+
+The module can be run specifying an algorithm, and will compute a goodness of fit indicator for that algorithm and the data. The procedure is therefore to first run on the real data
+
+<verbatim> combine -M GoodnessOfFit datacard.txt –algo=<some-algo></verbatim>
+
+and then to run on many toy mc datasets to determine the distribution of the goodness of fit indicator
+
+<verbatim> combine -M GoodnessOfFit datacard.txt –algo=<some-algo> -t <number-of-toys> -s <seed></verbatim>
+
+When computing the goodness of fit, by default the signal strength is left floating in the fit, so that the measure is independent from the presence or absence of a signal. It is possible to instead keep it fixed to some value by passing the option ==–fixedSignalStrength=&lt;value&gt;==.
+
+The following algorithms are supported: * ==saturated==: Compute a goodness-of-fit measure for binned fits based on the ''saturated model'' method, as prescribed by the StatisticsCommittee [[http://www.physics.ucla.edu/~cousins/stats/cousins_saturated.pdf][(note)]]. This quantity is similar to a chi-square, but can be computed for an arbitrary combination of binned channels with arbitrary constraints.
+
+Further goodness of fit methods could be added on request, especially if volunteers are available to code them.
+
+—++++ Compatibility between channels in an analysis
+
+The !ChannelCompatibilityCheck module can be used to evaluate how compatible are the measurements of the signal strength from the separate channels of a combination
+
+The module performs two fits of the data, first with the nominal model in which all channels are assumed to have the same signal strength multiplier, and then by allowing separate signal strengths in each channel. A chisquare-like quantity is computed as ''-2 log L(data|nominal)/L(data|alternate)''. Just like for the goodness of fit indicators, the expected distribution of this quantity under the nominal model can be computed from toy mc.
+
+By default, the signal strength is kept floating in the fit with the nominal model. It can however be fixed to a given value by passing the option ==–fixedSignalStrength=&lt;value&gt;==.
+
+In the default models build from the datacards the signal strengths in all channels are constrained to be non-negative. One can allow negative signal strengths in the fits by changing the bound on the variable (option ==–rMin=&lt;value&gt;==), which should make the quantity more chisquare-like under the hypothesis of zero signal; this however can create issues in channels with small backgrounds, since total expected yields and pdfs in each channel must be positive.
+
+When run with the a verbosity of 1, as the default, the program also prints out the best fit signal strengths in all channels; as the fit to all channels is done simultaneously, the correlation between the other systematical uncertainties is taken into account, and so these results can differ from the ones obtained fitting each channel separately. If the option ==saveFitResult== is specified, the output root file contains also two [[http://root.cern.ch/root/htmldoc/RooFitResult.html][RooFitResult]] objects =fit_nominal= and =fit_alternate= with the results of the two fits.
+
+An example usage and result:
+
+<verbatim> $ combine -M ChannelCompatibilityCheck comb_hww.txt -m 160 -n HWW &gt;&gt;&gt; including systematics &gt;&gt;&gt; method used to compute upper limit is ChannelCompatibilityCheck &gt;&gt;&gt; random number generator seed is 123456
+
+Sanity checks on the model: OK Computing limit starting from observation
+
+— ChannelCompatibilityCheck — Nominal fit : r = 0.3431 -0.1408/+0.1636 Alternate fit: r = 0.4010 -0.2173/+0.2724 in channel hww_0jsf_shape Alternate fit: r = 0.2359 -0.1854/+0.2297 in channel hww_0jof_shape Alternate fit: r = 0.7669 -0.4105/+0.5380 in channel hww_1jsf_shape Alternate fit: r = 0.3170 -0.3121/+0.3837 in channel hww_1jof_shape Alternate fit: r = 0.0000 -0.0000/+0.5129 in channel hww_2j_cut Chi2-like compatibility variable: 2.16098 Done in 0.08 min (cpu), 0.08 min (real)</verbatim>
+
+The macro [[https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/blob/master/test/plotting/cccPlot.cxx][cccPlot.cxx]] can be used to produce a comparison plot of the best fit signals from all channels.
+
+In the future, the module will be extended to allow computing the compatibility between groups of channels instead of individual channels.
+
+—+++ Combination of multiple datacards
+
+If you have separate channels each with it’s own datacard, it is possible to produce a combined datacard using the script ==combineCards.py==
+
+The syntax is simple: ==combineCards.py Name1=card1.txt Name2=card2.txt …. &gt; card.txt== %BR% If the input datacards had just one bin each, then the output channels will be called =Name1=, =Name2=, and so on. Otherwise, a prefix =Name1_= … =Name2_= will be added to the bin labels in each datacard. The supplied bin names =Name1=, =Name2=, etc. must themselves conform to valid !C++/python identifier syntax.
+
+''The systematics which have different names will be assumed to be uncorrelated, and the ones with the same name will be assumed 100% correlated.'' %BR% Note that a systematic correlated across channels must have the same p.d.f. in all cards (i.e. always ==lnN==, or all ==gmN== with same =N=)
+
+—+++ Datacard for Shape analyses
+
+The [[[#datacard|#DataCard]]] has to be supplemented with two extensions: 1 a new block of lines defining how channels and processes are mapped into shapes 1 the block for systematics that can contain also rows with shape uncertainties.
+
+The expected shape can be parametric or not parametric. In the first case the parametric pdfs have to be given as input to the tool. In the latter case, for each channel, histograms have to be provided for the expected shape of each process. For what concerns data, they have to be provided as input to the tool as a histogram to perform a ''binned'' shape analysis and as a tree to perform an ''unbinned'' shape analysis.
+
+''Not parametric shapes and uncertainties''
+
+For each channel, histograms have to be provided for the observed shape and for the expected shape of each process. * Within each channel, all histograms must have the same binning. * The normalization of the data histogram must correspond to the number of observed events * The normalization of the expected histograms must match the expected yields The combine tool can take as input histograms saved as TH1 or as !RooAbsHist in a !RooFit workspace (an example of how to create a RooFit workspace and save histograms is available in [[https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/blob/master/data/benchmarks/shapes/make_simple_shapes.cxx][github]]).
+
+Shape uncertainties can be taken into account by vertical interpolation of the histograms, like in the HIG-10-002 analysis. The shapes are interpolated quadratically for shifts below 1σ and linearly beyond. The normalizations are interpolated linearly in log scale just like we do for log-normal uncertainties.
+
+For each shape uncertainty and process/channel affected by it, two additional input shapes have to be provided, obtained shifting that parameter up and down by one standard deviation. When building the likelihood, each shape uncertainty is associated to a nuisance parameter taken from a unit gaussian distribution, which is used to interpolate or extrapolate using the specified histograms.
+
+For each given source of shape uncertainty, in the part of the datacard containing shape uncertainties (last block), there must be a row * __name_ %RED%shape%ENDCOLOR% _effect for each process and channel__ The effect can be “-” or 0 for no effect, 1 for normal effect, and possibly something different from 1 to test larger or smaller effects (in that case, the unit gaussian is scaled by that factor before using it as parameter for the interpolation)
+
+The block of lines defining the mapping (first block in the datacard) contains one or more rows in the form * ''%RED% shapes %ENDCOLOR% ''process'' ''channel'' ''file'' ''histogram'' [ ''histogram_with_systematics'' ]''
+
+In this line * '''process''' is any one the process names, or *** for all processes, or ''data_obs'' for the observed data * '''channel''' is any one the process names, or *** for all channels * __file_, ''histogram'' and _histogram_with_systematics__ identify the names of the files and of the histograms within the file, after doing some replacements (if any are found): * ''<math>PROCESS* is replaced with the process name (or "<b>data_obs</b>" for the observed data)  * *</math>CHANNEL'' is replaced with the channel name * ''<math>SYSTEMATIC* is replaced with the name of the systematic + (*Up, Down*)  * *</math>MASS'' is replaced with the higgs mass value which is passed as option in the command line used to run the limit tool
+
+The datacard in [[https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/blob/master/data/benchmarks/shapes/simple-shapes-TH1.txt][simple-shapes-TH1.txt]] is a clear example of how to include shapes in the datacard. In the first block the following line specifies the shape mapping: <verbatim> shapes * * simple-shapes-TH1.root $PROCESS <math>PROCESS_</math>SYSTEMATIC</verbatim>
+
+The last block concerns the treatment of the systematics affecting shapes. In this part the two uncertainties effecting on the shape are listed. <verbatim> alpha shape - 1 uncertainty on background shape and normalization sigma shape 0.5 - uncertainty on signal resolution. Assume the histogram is a 2 sigma shift, # so divide the unit gaussian by 2 before doing the interpolation</verbatim>
+
+In this case there are two processes, ''signal'' and ''background'', and two uncertainties affecting background (''alpha'') and signal shape (''sigma''). Within the root file 2 histograms per systematic have to be provided, they are the shape obtained, for the specific process, shifting up and down the parameter associated to the uncertainty: ''background_alphaUp'' and _background_alphaDown, ''signal_sigmaUp'' and ''signal_sigmaDown''. This is the content of the root file [[https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/blob/master/data/benchmarks/shapes/simple-shapes-TH1.root][simple-shapes-TH1.root ]] associated to the datacard [[https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/blob/master/data/benchmarks/shapes/simple-shapes-TH1.txt][simple-shapes-TH1.txt]]: <verbatim> root [0] Attaching file simple-shapes-TH1.root as _file0… root [1] _file0-&gt;ls() TFile** simple-shapes-TH1.root<br />
+TFile* simple-shapes-TH1.root<br />
+KEY: TH1F signal;1 Histogram of signal__x KEY: TH1F signal_sigmaUp;1 Histogram of signal__x KEY: TH1F signal_sigmaDown;1 Histogram of signal__x KEY: TH1F background;1 Histogram of background__x KEY: TH1F background_alphaUp;1 Histogram of background__x KEY: TH1F background_alphaDown;1 Histogram of background__x KEY: TH1F data_obs;1 Histogram of data_obs__x KEY: TH1F data_sig;1 Histogram of data_sig__x</verbatim>
+
+%TWISTY{mode=“div” showlink=“Show an example” hidelink=“Hide” firststart=“hide” showimgright=“%ICONURLPATH{toggleopen-small}%” hideimgright=“%ICONURLPATH{toggleclose-small}%”}%
+
+For example, without shape uncertainties you could have just one row with %BR% =shapes * * shapes.root <math>CHANNEL/</math>PROCESS= %BR% Then for a simple example for two channels “e”, “mu” with three processes “higgs”, “zz”, “top” you should create a rootfile that contains the following
+
+| ''histogram'' | ''meaning'' | | =e/data_obs= | observed data in electron channel | | =e/higgs= | expected shape for higgs in electron channel | | =e/zz= | expected shape for ZZ in electron channel | | =e/top= | expected shape for top in electron channel | | =mu/data_obs= | observed data in muon channel | | =mu/higgs= | expected shape for higgs in muon channel | | =mu/zz= | expected shape for ZZ in muon channel | | =mu/top= | expected shape for top in muon channel | If you also have one uncertainty that affects the shape, e.g. jet energy scale, you should create shape histograms for the jet energy scale shifted up by one sigma, you could for example do one folder for each process and write a like like%BR% =shapes * * shapes.root <math>CHANNEL/</math>PROCESS/nominal <math>CHANNEL/</math>PROCESS/$SYSTEMATIC= %BR% or just attach a postifx to the name of the histogram%BR% =shapes * * shapes.root <math>CHANNEL/</math>PROCESS <math>CHANNEL/</math>PROCESS_$SYSTEMATIC= %BR%
+
+%ENDTWISTY%
+
+''Parametric shapes and uncertainties''
+
+If you want to combine a channel with shapes with one that is a simple counting experiment, you have to declare some fake shapes in the datacard of the counting experiment. This can be done simply by adding a line to the datacard * ''%RED% shapes %ENDCOLOR% ''process'' ''channel'' %RED%FAKE%ENDCOLOR%''
+
+%TWISTY{mode=“div” showlink=“Implementation details and status” hidelink=“Hide” firststart=“hide” showimgright=“%ICONURLPATH{toggleopen-small}%” hideimgright=“%ICONURLPATH{toggleclose-small}%”}%
+
+As of tag ==T01-06-00== %COMPLETE5% (note the initial ==T== instead of ==V==, since it’s still only for testing) * ''Shapes:'' %ICON{choice-yes}% * %X% If doing toy mc generation, must run with ==–generateBinnedWorkaround== (or ==-U== / ==–unbinned==), due to a bug in RooFit * ''Shape uncertainties:'' %ICON{choice-yes}% * shapes with vertical shape morphing (quadratic up to 1 sigma, then linear) * exponential morphing on the normalization (just like for an asymmetric log-normal uncertainty) * one can select linear morphing (=shapeL=) or multiplicative morphing (=shapeN=) as well, but with some caveats: * only one morphing algorithm can be used for a given shape * multiplicative morphing is applied to the ''normalized'' shapes, and then the normalization is interpolated separately. also, note that this is ''much slower'' than quadratic or linear morphing (factor 10-100!) * if you get results that look unreasonable, it could be that the truncation effects due to some part of the shape becoming negative are sizable. you can partially recover from this problem forcing roofit to re-normalize explicitly the function (just replace ==shape== with ==shape''==; note, will be much slower), but it’s likely that you need some other approach to handle the shape systematics This includes also a few other features not in this twiki: '' Support for RooFit shapes (specifying <tt> ''workspaceName'' <b>:</b><i>objectName</i></tt> in place of ''histogramName''): * ''Binned datasets'' (!RooDataHist) for data and for mc processes: %ICON{choice-yes}% * ''Unbinned datasets'' (!RooDataSet) for data: %ICON{choice-yes}% * ''Arbitrary shapes'' (!RooAbsPdf) for mc processes: %ICON{choice-yes}% * %ICON{choice-yes}% Parametric shape uncertainties can be specified among the other systematics in a line %BR% <tt><i>name</i> ''param'' ''mean'' ''uncertainty'' ''[range]'' </tt>. %BR% The uncertainty can be either the sigma of a gaussian or =-xx/+yy= (with no spaces!) for a bifurcated gaussian. %BR% The range is optional. if present, it should be =[hi,lo]= (with no spaces!). * %X% Normalization will always be taken from text datacard * Unbinned templates (!RooDataSet) for mc processes : %ICON{choice-yes}% (but not tested) * %X% arbitrary shapes must have unique parameter names and they should match with the names of the systematics * Support for plain ==TTrees== as inputs instead of RooDataSet: %ICON{choice-yes}% (but not tested) * Mixing of histograms with RooFit shapes is not supported. %ENDTWISTY%
+
+—+++ Binned shape analysis
+
+[[%SCRIPTURL{“view”}%auth/CMS/SWGuideCMSDataAnalysisSchool2014HiggsCombPropertiesExercise#A_shape_analysis_using_templates][See the 2014 Data Analysis School tutorial.]]
+
+—+++ Unbinned shape analysis
+
+''This example is taken from [[%SCRIPTURL{“view”}%auth/CMS/SWGuideCMSDataAnalysisSchool2014HiggsCombPropertiesExercise#A_parametric_shape_analysis_H][2014 Data Analysis School]] and use H-&gt;gg datacards as an example. This is an example of an unbinned, parametric analysis.''
+
+In some cases, it can be convenient to describe the expected signal and background shapes in terms of analytical functions rather than templates; a typical example are the searches where the signal is apparent as a narrow peak over a smooth continuum background. In this context, uncertainties affecting the shapes of the signal and backgrounds can be implemented naturally as uncertainties on the parameters of those analytical functions. It is also possible to adapt an agnostic approach in which the parameters of the background model are left freely floating in the fit to the data, i.e. only requiring the background to be well described by a smooth function.
+
+Technically, this is implemented by means of the !RooFit package, that allows writing generic probability density functions, and saving them into ROOT files. The pdfs can be either taken from !RooFit’s standard library of functions (e.g. Gaussians, polynomials, …) or hand-coded in C++, and combined together to form even more complex shapes.
+
+A prototypical case for this kind of analysis is H→γγ analysis. For this excercise, we will use a datacard that contains only the 8 !TeV data for four event categories: ''cat0'' and ''cat1'' are categories of untagged events containing good quality diphotons, the former of the two with a higer purity but lower event yield obtained preferentially selecting high p<sub>T</sub> diphotons; ''cat4'' and ''cat5'' are categories of di-jet events with different levels of tightness (and so also different level of signal contamination from gluon fusion).
+
+The datacard is the following:
+
+<pre>imax 4 number of bins
+jmax 5 number of processes minus 1
+kmax * number of nuisance parameters
+----------------------------------------------------------------------------------------------------------------------------------
+shapes WH        cat0      hgg.inputsig_8TeV_MVA.root wsig_8TeV:hggpdfrel_wh_cat0
+shapes ZH        cat0      hgg.inputsig_8TeV_MVA.root wsig_8TeV:hggpdfrel_zh_cat0
+shapes bkg_mass  cat0      hgg.inputbkgdata_8TeV_MVA.root cms_hgg_workspace:pdf_data_pol_model_8TeV_cat0
+shapes data_obs  cat0      hgg.inputbkgdata_8TeV_MVA.root cms_hgg_workspace:roohist_data_mass_cat0
+shapes ggH       cat0      hgg.inputsig_8TeV_MVA.root wsig_8TeV:hggpdfrel_ggh_cat0
+shapes qqH       cat0      hgg.inputsig_8TeV_MVA.root wsig_8TeV:hggpdfrel_vbf_cat0
+shapes ttH       cat0      hgg.inputsig_8TeV_MVA.root wsig_8TeV:hggpdfrel_tth_cat0
+[... same as above for cat1, cat4, cat5 ...]
+----------------------------------------------------------------------------------------------------------------------------------
+bin          cat0         cat1         cat4         cat5       
+observation  -1.0         -1.0         -1.0         -1.0       
+----------------------------------------------------------------------------------------------------------------------------------
+bin                                      cat0         cat0         cat0         cat0         cat0         cat0         cat1         cat1         cat1         cat1         cat1         cat1         cat4         cat4         cat4         cat4         cat4         cat4         cat5         cat5         cat5         cat5         cat5         cat5       
+process                                  ZH           qqH          WH           ttH          ggH          bkg_mass     ZH           qqH          WH           ttH          ggH          bkg_mass     ZH           qqH          WH           ttH          ggH          bkg_mass     ZH           qqH          WH           ttH          ggH          bkg_mass   
+process                                  -4           -3           -2           -1           0            1            -4           -3           -2           -1           0            1            -4           -3           -2           -1           0            1            -4           -3           -2           -1           0            1          
+rate                                     6867.0000    19620.0000   12753.0000   19620.0000   19620.0000   1.0000       7259.4000    19620.0000   12360.6000   19620.0000   19620.0000   1.0000       7063.2000    19620.0000   12556.8000   19620.0000   19620.0000   1.0000       3924.0000    19620.0000   15696.0000   19620.0000   19620.0000   1.0000     
+----------------------------------------------------------------------------------------------------------------------------------
+CMS_eff_j               lnN              0.999125     0.964688     0.999125     0.998262     0.996483     -            0.999616     0.980982     0.999616     0.99934      0.999012     -            1.02         1.02         1.02         1.02         1.02         -            1.02         1.02         1.02         1.02         1.02         -          
+CMS_hgg_JECmigration    lnN              -            -            -            -            -            -            -            -            -            -            -            -            0.853986     0.995971     0.853986     0.846677     0.927283     -            1.025        1.005        1.025        1.025        1.025        -          
+CMS_hgg_UEPSmigration   lnN              -            -            -            -            -            -            -            -            -            -            -            -            0.737174     0.991941     0.737174     0.724019     0.86911      -            1.045        1.01         1.045        1.045        1.045        -          
+CMS_hgg_eff_MET         lnN              -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -          
+CMS_hgg_eff_e           lnN              -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -          
+CMS_hgg_eff_m           lnN              -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -            -          
+CMS_hgg_eff_trig        lnN              1.01         1.01         1.01         1.01         1.01         -            1.01         1.01         1.01         1.01         1.01         -            1.01         1.01         1.01         1.01         1.01         -            1.01         1.01         1.01         1.01         1.01         -          
+CMS_hgg_n_id            lnN              1.034/0.958  1.039/0.949  1.034/0.958  1.053/0.915  1.035/0.958  -            1.042/0.936  1.038/0.948  1.042/0.936  1.053/0.909  1.038/0.954  -            1.016/0.972  1.022/0.963  1.016/0.972  1.017/0.967  1.019/0.964  -            1.024/0.959  1.030/0.948  1.024/0.959  1.014/0.975  1.023/0.962  -          
+CMS_hgg_n_pdf_1         lnN              -            0.998/0.996  -            -            1.002/0.998  -            -            0.992/0.999  -            -            1.001/1.000  -            -            0.999/0.998  -            -            1.003/0.999  -            -            0.996/1.000  -            -            1.002/0.999  -          
+CMS_hgg_n_pdf_10        lnN              -            1.028/1.004  -            -            0.998/0.998  -            -            1.051/0.997  -            -            1.004/0.999  -            -            1.020/1.000  -            -            1.000/0.998  -            -            1.010/0.999  -            -            0.999/1.000  -          
+[... and more rows like this ...]
+CMS_hgg_n_sc_gf         lnN              -            -            -            -            0.842/1.123  -            -            -            -            -            0.976/1.031  -            -            -            -            -            0.858/1.095  -            -            -            -            -            0.880/1.083  -          
+CMS_hgg_n_sc_vbf        lnN              -            0.993/1.010  -            -            -            -            -            0.994/0.994  -            -            -            -            -            0.997/1.001  -            -            -            -            -            0.999/0.996  -            -            -            -          
+CMS_hgg_n_sigmae        lnN              0.950/1.099  0.943/1.114  0.950/1.099  0.956/1.089  0.944/1.112  -            0.954/1.093  0.948/1.104  0.954/1.093  0.971/1.057  0.919/1.165  -            0.996/1.006  0.992/1.016  0.996/1.006  0.995/1.010  0.994/1.012  -            0.991/1.019  0.985/1.031  0.991/1.019  0.995/1.010  0.988/1.026  -          
+CMS_id_eff_eb           lnN              1.01999      1.020047     1.01999      1.02002      1.020022     -            1.018535     1.019332     1.018535     1.018642     1.019654     -            1.017762     1.017952     1.017762     1.018824     1.01812      -            1.016723     1.016872     1.016723     1.01884      1.017172     -          
+CMS_id_eff_ee           lnN              1.000284     1.000137     1.000284     1.000206     1.0002       -            1.004035     1.001979     1.004035     1.003759     1.001148     -            1.006058     1.005556     1.006058     1.003308     1.005127     -            1.008752     1.008351     1.008752     1.003254     1.007586     -          
+JEC                     lnN              0.995187     0.938204     0.995187     0.990442     0.980656     -            0.997891     0.966719     0.997891     0.996368     0.994567     -            1.11         1.035        1.11         1.11         1.11         -            1.11         1.035        1.11         1.11         1.11         -          
+QCDscale_VH             lnN              0.982/1.021  -            0.982/1.021  -            -            -            0.982/1.021  -            0.982/1.021  -            -            -            0.982/1.021  -            0.982/1.021  -            -            -            0.982/1.021  -            0.982/1.021  -            -            -          
+QCDscale_ggH            lnN              -            -            -            -            0.918/1.076  -            -            -            -            -            0.918/1.076  -            -            -            -            -            0.918/1.076  -            -            -            -            -            0.918/1.076  -          
+QCDscale_qqH            lnN              -            0.992/1.003  -            -            -            -            -            0.992/1.003  -            -            -            -            -            0.992/1.003  -            -            -            -            -            0.992/1.003  -            -            -            -          
+QCDscale_ttH            lnN              -            -            -            0.906/1.041  -            -            -            -            -            0.906/1.041  -            -            -            -            -            0.906/1.041  -            -            -            -            -            0.906/1.041  -            -          
+UEPS                    lnN              0.988624     0.858751     0.988624     0.977408     0.954278     -            0.995014     0.923929     0.995014     0.991416     0.987158     -            1.26         1.08         1.26         1.26         1.26         -            1.26         1.08         1.26         1.26         1.26         -          
+lumi_8TeV               lnN              1.044        1.044        1.044        1.044        1.044        -            1.044        1.044        1.044        1.044        1.044        -            1.044        1.044        1.044        1.044        1.044        -            1.044        1.044        1.044        1.044        1.044        -          
+pdf_gg                  lnN              -            -            -            0.920/1.080  0.930/1.076  -            -            -            -            0.920/1.080  0.930/1.076  -            -            -            -            0.920/1.080  0.930/1.076  -            -            -            -            0.920/1.080  0.930/1.076  -          
+pdf_qqbar               lnN              0.958/1.042  0.972/1.026  0.958/1.042  -            -            -            0.958/1.042  0.972/1.026  0.958/1.042  -            -            -            0.958/1.042  0.972/1.026  0.958/1.042  -            -            -            0.958/1.042  0.972/1.026  0.958/1.042  -            -            -          
+vtxEff                  lnN              0.991/1.025  0.989/1.030  0.991/1.025  0.993/1.020  0.989/1.030  -            0.990/1.026  0.990/1.027  0.990/1.026  0.994/1.016  0.984/1.042  -            1.000/0.999  0.997/1.007  1.000/0.999  1.000/1.003  0.998/1.006  -            0.999/1.004  0.998/1.006  0.999/1.004  1.000/1.000  0.997/1.007  -          
+CMS_hgg_nuissancedeltamcat4  param  0.0 0.001458
+CMS_hgg_nuissancedeltafracright_8TeV  param  1.0 0.002000
+CMS_hgg_nuissancedeltamcat1  param  0.0 0.001470
+CMS_hgg_nuissancedeltamcat0  param  0.0 0.001530
+CMS_hgg_nuissancedeltasmearcat4  param  0.0 0.001122
+CMS_hgg_nuissancedeltasmearcat1  param  0.0 0.001167
+CMS_hgg_nuissancedeltasmearcat0  param  0.0 0.001230
+CMS_hgg_globalscale  param  0.0 0.004717
+</pre>
+The first difference compared to the template datacard is in the ==shapes== line; let’s take for example these two lines
+
+<pre>shapes ggH       cat0      hgg.inputsig_8TeV_MVA.root wsig_8TeV:hggpdfrel_ggh_cat0
+shapes data_obs  cat0      hgg.inputbkgdata_8TeV_MVA.root cms_hgg_workspace:roohist_data_mass_cat0
+</pre>
+In the datacard using templates, the column after the file name would have been the name of the histogram. Here, instead, we found two names, separated by a colon (==:==): the first part identifies the name of the [[http://root.cern.ch/root/htmldoc/RooWorkspace.html][RooWorkspace]] containing the pdf, and the second part the name of the [[http://root.cern.ch/root/htmldoc/RooAbsPdf.html][RooAbsPdf]] inside it (or, for the observed data, the [[http://root.cern.ch/root/htmldoc/RooAbsData.html][RooAbsData]]).
+
+Let’s inspect this workspace, starting with the data
+<div class="cpp">
+
+%CODE{“cpp”}% TFile ''fDat = TFile::Open(“hgg.inputbkgdata_8TeV_MVA.root”); RooAbsData ''data = cms_hgg_workspace-&gt;data(“roohist_data_mass_cat0”); data-&gt;Print(“”) // –&gt; RooDataHist::roohist_data_mass_cat0[CMS_hgg_mass] = 160 bins (1449 weights) // so, we have a binned dataset, whose variable is called CMS_hgg_mass: RooRealVar *mass = cms_hgg_workspace-&gt;var(“CMS_hgg_mass”); mass-&gt;Print(“”); // RooRealVar::CMS_hgg_mass = 140 L(100 - 180)
+
+// we can make a plot of the dataset with the following RooPlot *plot = mass-&gt;frame(); data-&gt;plotOn(plot); plot-&gt;Draw(); %ENDCODE%
+
+</div>
+<img alt="datacards_Hgg_data_cat0.png" src="%ATTACHURLPATH%/datacards_Hgg_data_cat0.png" />
+
+Now let’s look also at the signal
+<div class="cpp">
+
+%CODE{“cpp”}% TFile ''sig = TFile::Open(“hgg.inputsig_8TeV_MVA.root”); RooWorkspace ''wsig_8TeV = (RooWorkspace'')sig-&gt;Get(“wsig_8TeV”) // necessary to Get the workspace in ROOT6 to avoid reloading RooAbsPdf ''ggH = wsig_8TeV-&gt;pdf(“hggpdfrel_ggh_cat0”); ggH-&gt;Print(“”); // –&gt; RooAddPdf::hggpdfrel_ggh_cat0[ hist_func_frac_g0_ggh_cat0 * hgg_gaus_g0_ggh_cat0 + hist_func_frac_g1_ggh_cat0 * hgg_gaus_g1_ggh_cat0 + const_func_frac_g2_ggh_cat0 * hgg_gaus_g2_ggh_cat0 ] = 0.604097 // this appears to be a linear combination of multiple gaussian pdfs (hgg_gaus_g0_ggh_cat0, hgg_gaus_g1_ggh_cat0, …) with coefficents hist_func_frac_g0_ggh_cat0, hist_func_frac_g1_ggh_cat0
+
+// let’s get the list of the parameters that describe it RooArgSet ''params = ggH-&gt;getParameters(''data); params-&gt;Print(“”); // –&gt; RooArgSet::parameters = (CMS_hgg_globalscale,CMS_hgg_nuissancedeltamcat0,CMS_hgg_nuissancedeltasmearcat0,MH)
+
+// MH is a special parameter, which combine and text2workspace set to the Higgs mass hypothesis. // now since we’re just looking into the input workspace, we can set it by hand wsig_8TeV-&gt;var(“MH”)-&gt;setVal(125.7);
+
+// Now we can make a plot of the pdf, and show also the contributions from the different gaussians from which it is composed RooPlot *plot = wsig_8TeV-&gt;var(“CMS_hgg_mass”)-&gt;frame(); ggH-&gt;plotOn(plot); ggH-&gt;plotOn(plot, RooFit::Components(“hgg_gaus_g0_ggh_cat0”), RooFit::LineColor(kRed)); ggH-&gt;plotOn(plot, RooFit::Components(“hgg_gaus_g1_ggh_cat0”), RooFit::LineColor(209)); ggH-&gt;plotOn(plot, RooFit::Components(“hgg_gaus_g2_ggh_cat0”), RooFit::LineColor(222)); plot-&gt;Draw(); %ENDCODE%
+
+</div>
+<img alt="datacards_Hgg_ggH_cat0.png" src="%ATTACHURLPATH%/datacards_Hgg_ggH_cat0.png" />
+
+—++++ Parametric signal normalization
+
+There is also another feature of the H→γγ datacard that should catch your eye quicky: the event yields are remarkably strange: the the signal yield is ==19620.0000== events for ggH, qqH and ttH, the background yield is ==1.0==, and observed event yield is ==-1.0==.
+
+Let’s start with the simple case: an event yield of ==-1== just instructs text2workspace and combine to take the yield from the corresponding dataset in the input rootfile, avoiding the need of writing it in the text datacard, but also making the datacard less human-readable. Incidentally, this feature can be used also for datacards that use root histograms like the H→ττ example above.
+
+Now, the signal and background yields: 19k signal events from each production mode with just one background event would be really nice to have, but of course it can’t be true. The way the H→γγ works is by relying on an additional feature of text2workspace: in addition to providing generic shapes for the signals and backgrounds, it is also possible to provide generic functions that describe the expected signal and background yields. This additional functions are multiplied by the number in the ==rate== column of the datacard to obtain the final expected event yield. This feature allows e.g. to use the very same datacard to describe all possible different Higgs boson mass hypotheses by just parameterizing properly the expected yield as function of the ==MH== variable.
+
+At present, this feature is not indicated by any special line the datacard: simply, whenever a !RooAbsPdf is loaded, text2workspace will search also for a !RooAbsReal object with the same name but a ==_norm== postfix, and if present it will use it to scale the event yield.
+
+Note: The newest version of combine will not accept !RooExtendedPdfs as an input anymore. This is to alleviate a bug that lead to improper treatment of normalization when using multiple RooExtendedPdfs to describe a single process. Simply follow the above instructions and combine will create the appropriate extended pdf as long as the name of the !RooAbsReal is pdfname_norm. Make sure the variable is not set to constant if you intend to have the normalization float.
+
+Armed with this new piece of knowledge, we can now determine what is the expected signal yield for ggH in category 0:
+<div class="cpp">
+
+%CODE{“cpp”}% TFile ''sig = TFile::Open(“hgg.inputsig_8TeV_MVA.root”); RooWorkspace ''wsig_8TeV = (RooWorkspace'')sig-&gt;Get(“wsig_8TeV”) // necessary to Get the workspace in ROOT6 to avoid reloading wsig_8TeV-&gt;var(“MH”)-&gt;setVal(125.7); RooAbsPdf ''ggH = wsig_8TeV-&gt;pdf(“hggpdfrel_ggh_cat0”); RooAbsReal ''ggH_norm = wsig_8TeV-&gt;function(“hggpdfrel_ggh_cat0_norm”); cout &lt;&lt; ggH_norm-&gt;getVal()''19620.0000 &lt;&lt; endl; // –&gt; 12.3902 %ENDCODE%
+
+</div>
+This approach can also be used to make a background freely floating, by associating to them as normalization term a floating !RooRealVar. However, this can be achieved in a more transparent way by putting instead a normalization uncertainty on that background using a flat pdf: e.g. to leave the background floating between 50% and 200% of its input prediction, a ==lnU== systematic can be used with κ=2 ( ==lnU== has a syntax like ==lnN==, but produces a uniform pdf between 1/κ and κ rather than a log-normal; see [[%SCRIPTURL{“view”}%auth/CMS/SWGuideHiggsAnalysisCombinedLimit#How_to_prepare_the_datacard][SWGuideHiggsAnalysisCombinedLimit]])
+
+—++++ Shape uncertainties using parameters
+
+The part of the H→γγ datacard related to the systematics starts with many lines of log-normals that should already be familiar, except possibly for the notation with two numbers separated by a slash (e.g. 0.950/1.099). This notation is used for asymmetrical uncertainties: a log-normal with 0.950/1.099 means that at -1σ the yield is scaled down by a factor 0.95, while at +1σ the yield is scaled up by a factor 1.099.
+
+The last part of the datacard contains some lines that use a different syntax, e.g.
+
+<pre>CMS_hgg_globalscale  param  0.0 0.004717</pre>
+These lines encode uncertainties on the parameters of the signal and background pdfs. The example line quoted here informs text2workspace that the parameter ==CMS_hgg_globalscale== is to be assigned a Gaussian uncertainty of ±0.004717 around its mean value of zero (0.0). One can change the mean value from 0 to 1 (or really any value, if one so chooses) if the parameter in question is multiplicative instead of additive.
+
+The effect can be visualized from !RooFit, e.g.
+<div class="cpp">
+
+%CODE{“cpp”}% TFile ''sig = TFile::Open(“hgg.inputsig_8TeV_MVA.root”); RooWorkspace ''wsig_8TeV = (RooWorkspace*)sig-&gt;Get(“wsig_8TeV”) // necessary to Get the workspace in ROOT6 to avoid reloading
+
+wsig_8TeV-&gt;var(“MH”)-&gt;setVal(125.7); RooAbsPdf *ggH = wsig_8TeV-&gt;pdf(“hggpdfrel_ggh_cat0”);
+
+// prepare the canvas RooPlot *plot = wsig_8TeV-&gt;var(“CMS_hgg_mass”)-&gt;frame();
+
+// plot nominal pdf ggH-&gt;plotOn(plot, RooFit::LineColor(kBlack));
+
+// plot minus 3 sigma pdf wsig_8TeV-&gt;var(“CMS_hgg_globalscale”)-&gt;setVal(-3*0.004717); ggH-&gt;plotOn(plot, RooFit::LineColor(kBlue));
+
+// plot plus 3 sigma pdf wsig_8TeV-&gt;var(“CMS_hgg_globalscale”)-&gt;setVal(+3*0.004717); ggH-&gt;plotOn(plot, RooFit::LineColor(kRed)); plot-&gt;Draw(); %ENDCODE%
+
+</div>
+<img alt="datacards_Hgg_ggH_cat0_syst.png" src="%ATTACHURLPATH%/datacards_Hgg_ggH_cat0_syst.png" />
+
+Note that if one wants to specify a parameter that is freely floating across its given range, and not gaussian constrained, the following syntax is used:
+<pre> CMS_my_bg_param1  flatParam </pre>
+The Hgg and HZg analyses use this syntax when adding in the parameters that correspond to their background shapes.
+
+= ParametricModelAndBinnedData =
+
+—++++ Caveat on using parametric pdfs with binned datasets
+
+Users should be aware of a feature that affects the use of parametric pdfs together with binned datasets.
+
+RooFit uses the integral of the pdf, computed analytically (or numerically, but disregarding the binning), to normalize it, but then computes the expected event yield in each bin evaluating only the pdf at the bin center. This means that if the variation of the pdf is sizeable within the bin then there is a mismatch between the sum of the event yields per bin and the pdf normalization, and that can cause a bias in the fits (more properly, the bias is there if the contribution of the second derivative integrated on the bin size is not negligible, since for linear functions evaluating them at the bin center is correct).
+
+So, it is recommended to use bins that are significantly finer than the characteristic scale of the pdfs - which would anyway be the recommended thing even in the absence of this feature.
+
+Obviously, this caveat does not apply to analyses using templates (they’re constant across each bin, so there’s no bias), or using unbinned datasets.
+
+—+++ Analysis with more generic models
+
+—++++ Model building
+
+Generic models can be implemented by writing a python class that: * defines the model parameters (by default it’s just the signal strength modifier ==r==) * defines how signal and background yields depend on the parameters (by default, signal scale linearly with ==r==, backgrounds are constant) * potentially also modifies the systematics (e.g. switch off theory uncertainties on cross section when measuring the cross section itself?)
+
+In the case of SM-like Higgs searches the class should inherit from ==SMLikeHiggsModel== (redefining ==getHiggsSignalYieldScale==), while beyond that one can inherit from ==PhysicsModel==. You can find some examples in [[https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/blob/master/python/PhysicsModel.py][PhysicsModel.py]].
+
+To create a binary workspace starting from a =datacard.txt= and a custom model =myModel= defined in python package =MyPackage=, just do %BR%
+
+<verbatim> text2workspace.py datacard.txt -o workspace.root -P MyPackage:myModel</verbatim>
+
+—+++++ MultiSignalModel: ready-made model for multiple signal processes
+
+Combine already contains a model ==HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel== that can be used to assign different signal strengths to multiple processes in a datacard, configurable from the command line.
+
+The model is configured passing to text2workspace one or more mappings in the form ==–PO ‘map=bin/process:parameter’== * ==bin== and ==process== can be arbitrary regular expressions matching the bin names and process names in the datacard%BR%Note that mappings are applied both to signals and to background processes; if a line matches multiple mappings, precedence is given to the last one in the order they are in the command line.%BR%it is suggested to put quotes around the argument of ==–PO== so that the shell does not try to expand any ==''== signs in the patterns. '' ==parameter== is the POI to use to scale that process (=name[starting_value,min,max]= the first time a parameter is defined, then just =name= if used more than once)%BR%Special values are ==1== and ==0==; ==0== means to drop the process completely from the card, while ==1== means to keep the yield as is in the card with no scaling (as normally done for backgrounds); ==1== is the default that is applied to processes that have no mappings, so it’s normally not needed, but it may be used either to make the thing explicit, or to override a previous more generic match on the same command line (e.g. =–PO ’map=.*/ggH:r[1,0,5]‘–PO ’map=bin37/ggH:1’= would treat ggH as signal in general, but count it as background in the channel =bin37=)
+
+Passing the additional option ==–PO verbose== will set the code to verbose mode, printing out the scaling factors for each process; people are encouraged to use this option to make sure that the processes are being scaled correctly.
+
+The !MultiSignalModel will define all parameters as parameters of interest, but that can be then changed from the command line of combine, as described in the following sub-section.
+
+Some examples, taking as reference the toy datacard [[https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/blob/master/test/multiDim/toy-hgg-125.txt][test/multiDim/toy-hgg-125.txt]]: * Scale both =ggH= and =qqH= with the same signal strength =r= (that’s what the default physics model of combine does for all signals; if they all have the same systematic uncertainties, it is also equivalent to adding up their yields and writing them as a single column in the card) <verbatim> $ text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel –PO verbose –PO ‘map=.''/ggH:r[1,0,10]’ –PO ’map=.''/qqH:r’ toy-hgg-125.txt -o toy-1d.root […] Will create a POI r with factory r[1,0,10] Mapping r to [’.*/ggH’] patterns Mapping r to [’.*/qqH’] patterns […] Will scale incl/bkg by 1 Will scale incl/ggH by r Will scale incl/qqH by r Will scale dijet/bkg by 1 Will scale dijet/ggH by r Will scale dijet/qqH by r</verbatim> * Define two independent parameters of interest =r_ggH= and =r_qqH= <verbatim> $ text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel –PO verbose –PO ‘map=.''/ggH:r_ggH[1,0,10]’ –PO ’map=.''/qqH:r_qqH[1,0,20]’ toy-hgg-125.txt -o toy-2d.root […] Will create a POI r_ggH with factory r_ggH[1,0,10] Mapping r_ggH to [’.*/ggH’] patterns Will create a POI r_qqH with factory r_qqH[1,0,20] Mapping r_qqH to [’.*/qqH’] patterns […] Will scale incl/bkg by 1 Will scale incl/ggH by r_ggH Will scale incl/qqH by r_qqH Will scale dijet/bkg by 1 Will scale dijet/ggH by r_ggH Will scale dijet/qqH by r_qqH</verbatim> * Fix ==ggH== to SM, define only ==qqH== as parameter <verbatim> $ text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel –PO verbose –PO ‘map=.''/ggH:1’ –PO ’map=.''/qqH:r_qqH[1,0,20]’ toy-hgg-125.txt -o toy-1d-qqH.root […] Mapping 1 to [’.*/ggH’] patterns Will create a POI r_qqH with factory r_qqH[1,0,20] Mapping r_qqH to [’.*/qqH’] patterns […] Will scale incl/bkg by 1 Will scale incl/ggH by 1 Will scale incl/qqH by r_qqH Will scale dijet/bkg by 1 Will scale dijet/ggH by 1 Will scale dijet/qqH by r_qqH</verbatim> * Drop ==ggH== , and define only ==qqH== as parameter <verbatim> $ text2workspace.py -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel –PO verbose –PO ‘map=.''/ggH:0’ –PO ’map=.''/qqH:r_qqH[1,0,20]’ toy-hgg-125.txt -o toy-1d-qqH0-only.root […] Mapping 0 to [’.*/ggH’] patterns Will create a POI r_qqH with factory r_qqH[1,0,20] Mapping r_qqH to [’.*/qqH’] patterns […] Will scale incl/bkg by 1 Will scale incl/ggH by 0 Will scale incl/qqH by r_qqH Will scale dijet/bkg by 1 Will scale dijet/ggH by 0 Will scale dijet/qqH by r_qqH</verbatim>
+
+—++++ Multidimensional fits
+
+The !MultiDimFit module can do multi-dimensional fits and likelihood based contours.
+
+An example: * Take a toy datacard [[https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/blob/master/test/multiDim/toy-hgg-125.txt][test/multiDim/toy-hgg-125.txt]] (counting experiment which vaguely resembles the H→γγ analysis at 125 GeV) * Convert into a workspace with 2 parameters, ggH and qqH cross sections <verbatim>text2workspace.py toy-hgg-125.txt -m 125 -P HiggsAnalysis.CombinedLimit.PhysicsModel:floatingXSHiggs –PO modes=ggH,qqH</verbatim> * Perform a just a plain fit <verbatim>combine -M MultiDimFit toy-hgg-125.root</verbatim> The output root tree will contain two columns, one for each parameter, with the fitted values. * Perform a fit of each parameter separately, treating the others as unconstrained nuisances: <verbatim>combine -M MultiDimFit toy-hgg-125.root –algo=singles –cl=0.68</verbatim> . The output root tree will contain two columns, one for each parameter, with the fitted values; there will be one row with the best fit point (and =quantileExpected= set to 1) and two rows for each fitted parameter, where the corresponding column will contain the maximum and minimum of that parameter in the 68% CL interval, according to a ''one-dimensional chisquare'' (i.e. uncertainties on each fitted parameter do ''not'' increase when adding other parameters if they’re uncorrelated) * Perform joint fit of all parameters: <verbatim>combine -M MultiDimFit toy-hgg-125.root –algo=cross –cl=0.68 </verbatim> The output root tree will have one row with the best fit point, and two rows for each parameter, corresponding to the minimum and maximum of that parameter on the likelihood contour corresponding to the specified CL, according to a ''N-dimensional chisquare'' (i.e. uncertainties on each fitted parameter ''do'' increase when adding other parameters, even if they’re uncorrelated). Note that the output of this way of running are not 1D uncertainties on each parameter, and shouldn’t be taken as such * Scan on a fixed grid not with approximately N points in total. <verbatim>combine -M MultiDimFit toy-hgg-125.root –algo=grid –points=10000</verbatim> You can partition the job in multiple tasks by using options ==–firstPoint== and ==–lastPoint==. The output file will contain a column ==deltaNLL= with the difference in negative log likelihood with respect to the best fit point. This mode works only with one or two paramerees For most of the methods, for lower precision results you can turn off the profiling of the nuisances setting option ==–fastScan==, which for complex models speeds up the process by several orders of magnitude. Nuisance parameters will be kept fixed at the value corresponding to the best fit points.
+
+<b>Fitting only some parameters</b>%BR% If your model contains more parameters, you can still decide to fit a smaller number of them, use a syntax like this:
+
+<verbatim>combine -M MultiDimFit […] -P poi1 -P poi2 … –floatOtherPOIs=(0|1)</verbatim>
+
+If ==floatOtherPOIs== is set to 0, the other parameters are kept fixed to their nominal values. If it’s set to 1, they are kept floating, which has different consequences depending on ==algo==: * When running with ==algo=singles==, the other floating POIs are treated as unconstrained nuisance parameters. * When running with ==algo=cross== or ==algo=contour2d==, the other floating POIs are treated as other POIs, and so they increase the number of dimensions of the chi-square. As a result, when running with ==floatOtherPOIs== set to 1, the uncertainties on each fitted parameters do not depend on what’s the selection of POIs passed to !MultiDimFit, but only on the number of parameters of the model.
+
+Less useful, and unsupported, options: * Make a 68% CL contour a la minos <verbatim>combine -M MultiDimFit toy-hgg-125.root –algo=contour2d –points=20 –cl=0.68</verbatim> The output will contain values corresponding to the best fit point (with =quantileExpected= set to 1) and for a set of points on the contour (with =quantileExpected= set to 1-CL, or something larger than that if the contour is hitting the boundary of the parameters). Probabilities are computed from the the n-dimensional chisquare distribution. For slow models, you can split it up by running several times with ''different'' number of points and merge the outputs (something better can be implemented). %BR% You can look at the [[https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/blob/master/test/multiDim/contourPlot.cxx][contourPlot.cxx]] macro for how to make plots out of this. %BR% %RED%The suggested and supported way to make contours is NOT to run with this option, but rather to run a fixed 2D grid scan and then rely on the contour algorithms of TH2%ENDCOLOR% * Scan N random points and compute the probability out of the profile likelihood <verbatim>combine -M MultiDimFit toy-hgg-125.root –algo=random –points=20 –cl=0.68</verbatim> Again, best fit will have =quantileExpected= set to 1, while each random point will have =quantileExpected= set to the probability given by the profile likelihood at that point.
+
+—++++ Multidimensional bayesian
+
+First create a workspace with more than one parameter, as explained above
+
+Then, just run one or more MCMC chain and save them in the output tree. You can ignore the complaints about not being able to compute an upper limit: the rest of the MCMC code has not yet been adapted to multidimensional models. %BR% ==combine -M !MarkovChainMC workspace.root –tries 1 –saveChain -i 1000000 -m 125 -s seed==
+
+The output of the markov chain is a dataset of weighted events distributed according to the posterior pdf (after you cut out the burn in part), so it can be used to make histograms or other distributions of the posterior. See as an example [[https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/blob/master/test/multiDim/bayesPosterior2D.cxx][bayesPosterior2D.cxx]].
+
+Exclusion contours can be made from the posterior once an ordering principle is defined to decide how to grow the contour (there’s infinite possible contours that contain 68% of the posterior pdf…) An example to make contours when ordering by probability density is in [[https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/blob/master/test/multiDim/bayesContours.cxx][bayesContours.cxx]], but the implementation is very simplistic, with no clever handling of bin sizes nor any smoothing of statistical fluctuations.
+
+—++++ Feldman-Cousins regions
+
+The F-C procedure for a generic model is: * use as test statistics the profile likelihood ''q(x) = - 2 ln L(data|x)/L(data|x-hat)'' where ''x'' is a point in the parameter space, and ''x-hat'' are the point corresponding to the best fit (nuisance parameters are profiled both at numerator and at denominator) * for each point ''x'': * compute the observed test statistics ''q<sub>obs</sub>(x)'' * compute the expected distribution of ''q(x)'' under the hypothesis of x. * accept the point in the region if ''P(q(x) &lt; q<sub>obs</sub>(x) | x) &lt; CL''
+
+In combine, you can perform this test on each individual point (param1,param2,…) = (value1,value2,…) by doing
+
+<verbatim> combine workspace.root -M HybridNew –freq –testStat=PL –rule=CLsplusb –singlePoint param1=value1,param2=value2,param3=value3,… [other options of HybridNew]</verbatim>
+
+The point belongs to your confidence region if CL<sub>s+b</sub> is larger than 1-CL (e.g. 0.3173 for a 1-sigma region, CL=0.6827).
+
+Imposing physical boundaries (such as requiring mu&gt;0) can be achieved by setting the ranges of the physics model parameters using <verbatim> –setPhysicsModelParameterRanges param1=param1_min,param1_max:param2=param2_min,param2_max ….</verbatim>
+
+. If there is no upper/lower boundary, just set that value to something far from the region of interest.
+
+As in general for !HybridNew, you can split the task into multiple tasks and then merge the outputs, as described in the [[SWGuideHiggsAnalysisCombinedLimit#HybridNew_algorithm][HybridNew chapter]].
+
+For uni-dimensional models only, and if the parameter behaves like a cross-section, the code is somewhat able to do interpolation and determine the values of your parameter on the contour (just like it does for the limits). In that case, the syntax is the same as per the CLs limits with [[HybridNew chapter]] except that you want ==–testStat=PL –rule=CLsplusb== .
+
+''Extracting Contours'' %BR%
+
+There is a tool for extracting confidence intervals and 2D contours from the output of !HybridNew located in ==test/makeFCcontour.py== providing the option ==–saveToys== was included when running !HybridNew. I can be run taking as input, the toys files (or several of them) as,
+
+<verbatim> ./makeFCcontour.py toysfile1.root toysfile2.root …. [options] -out outputfile.root</verbatim>
+
+The tool has two modes (1D and 2D). For the 1D, add the option ==–d1== and the name of the parameter of interest ==–xvar poi_name==. For each confidence interval desired, add any confidence level of interest using ==–cl 0.68,0.95…== The intervals corresponding to each confidence level will be printed to the terminal. The output file will contain a graph of the parameter of interest (x) vs 1-CL<sub>s+b</sub> used to compute the intervals.
+
+To extract 2D contours, the names of each parameter must be given ==–xvar poi_x –yvar poi_y==. The output will be a root file containing a 2D histogram of the confidence level (1-CL<sub>s+b</sub>) for each point which can be used to draw 2D contours. There will also be a histogram containing the number of toys found for each point.
+
+There are several options for reducing the running time (such as setting limits on the region of interest or the minimum number of toys required for a point to be included) Finally, adding the option ==–storeToys== will add histograms in for each point to the output file of the test-statistic distribution. This will increase the momory usage however as all of the toys will be stored.
+
+—+++ Signal Hypothesis separation
+
+In some cases, instead of separating a signal from a background, you might want to separate a signal of one type from a signal of another type (e.g. scalar vs pseudo-scalar Higgs boson).
+
+This is documented at [[HiggsWG.SWGuideHiggsCombinationSignalSeparation][SWGuideHiggsCombinationSignalSeparation]]
+
+—+++ Using best-fit snapshots
+
+This can be used to save time when performing scans so that the best-fit needs not be redone and can also be used to perform scans with some nuisances frozen to the best-fit values.
+
+—++++ For scans freezing nuisances
+
+From [[https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/pull/79][here]]:
+<pre># Create a workspace workspace for a floating (mu,mH) fit
+text2workspace.py hgg_datacard_mva_8TeV_bernsteins.txt -m 125 -P HiggsAnalysis.CombinedLimit.PhysicsModel:floatingHiggsMass --PO higgsMassRange=120,130 -o testmass.root
+
+# Perfom the fit, saving the workspace
+combine -m 123 -M MultiDimFit --saveWorkspace -n teststep1 testmass.root  --verbose 9
+
+# load the best-fit (mu,mH) and fit for mu freezing mH and lumi_8TeV to the best-fit values
+combine -m 123 -M MaxLikelihoodFit -d higgsCombineteststep1.MultiDimFit.mH123.root -w w --snapshotName "MultiDimFit" -n teststep2  --verbose 9 --freezeNuisances MH,lumi_8TeV
+</pre>
+—++++ Throwing post-fit toys
+
+From [[https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/pull/86][here]]:
+<pre>#build workspace for mu-mh fit
+text2workspace.py ../cards/hgg_datacard_mva_comb_bernsteins.txt -m 125 -P HiggsAnalysis.CombinedLimit.PhysicsModel:floatingHiggsMass --PO higgsMassRange=105,155 -o testmasshggcomb.root
+
+#perform s+b fit and save workspace+snapshot
+combine testmasshggcomb.root -m 125 -M MultiDimFit --saveWorkspace --verbose 9 -n mumhfit
+
+#throw post-fit toy with b from s+b(floating mu,mh) fit, s with r=1.0, m=best fit MH, using nuisance values and constraints re-centered on s+b(floating mu-mh) fit values (aka frequentist post-fit expected)
+#and compute post-fit expected mu uncertainty profiling MH
+combine higgsCombinemumhfit.MultiDimFit.mH125.root --snapshotName MultiDimFit -M MultiDimFit --verbose 9 -n randomtest --toysFrequentist --bypassFrequentistFit  -t -1 --expectSignal=1 -P r --floatOtherPOIs=1 --algo singles
+
+#throw post-fit toy with b from s+b(floating mu,mh) fit, s with r=1.0, m=128.0, using nuisance values and constraints re-centered on s+b(floating mu-mh) fit values (aka frequentist post-fit expected)
+#and compute post-fit expected significance (with MH fixed at 128 implicitly)
+combine higgsCombinemumhfit.MultiDimFit.mH125.root -m 128 --snapshotName MultiDimFit -M ProfileLikelihood --significance --verbose 9 -n randomtest --toysFrequentist --bypassFrequentistFit --overrideSnapshotMass -t -1 --expectSignal=1 --redefineSignalPOIs r --freezeNuisances MH
+
+#throw post-fit toy with b from s+b(floating mu,mh) fit, s with r=0.0, using nuisance values and constraints re-centered on s+b(floating mu-mh) fit values (aka frequentist post-fit expected)
+#and compute post-fit expected and observed asymptotic limit (with MH fixed at 128 implicitly)
+combine higgsCombinemumhfit.MultiDimFit.mH125.root -m 128 --snapshotName MultiDimFit -M Asymptotic --verbose 9 -n randomtest --bypassFrequentistFit --overrideSnapshotMass--redefineSignalPOIs r --freezeNuisances MH
+</pre>
+—+++ Modifying parameters of interest on the command line
+
+Normally, the parameters of interest of a model are defined by the !PhysicsModel used by text2workspace.
+
+However, combine provides command line options to redefine on the fly what are the parameters of interest (useful also if the workspaces are built from external tools and not text2workspace), for setting the values of the parameters and their ranges. The !MultiDimFit method already provides conventient handles to specify which parameter to analyze and how to deal with the others (floating or fixed), but these commands are more general as they apply to all statistical methods and they can affect any kind of parameters in the model, not only those that were pre-defined as parameters of interest (the wording “physics model parameter” or “nuisance” in the names of the options is there only because that’s typically what they are applied to, not because their functionality is restricted to parameters of that kind) * ==–setPhysicsModelParameters name=value[,name2=value2,…]== sets the starting values of the parameters, useful e.g. when generating toy MC or when also setting the parameters as fixed. * ==–setPhysicsModelParameterRanges name=min,max[:name2=min2,max2:…]== sets the ranges of the parameters (useful e.g. for scanning in MultiDimFit, or for Bayesian integration) * ==–redefineSignalPOIs name[,name2,…]== redefines the set of parameters of interest. * if the parameters where constant in the input workspace, they are re-defined to be floating. * nuisances promoted to parameters of interest are removed from the list of nuisances, and thus they are not randomized in methods that randomize nuisances (e.g. !HybridNew in non-frequentist mode, or !BayesianToyMC, or in toy generation with =-t= but without ==–toysFreq==). %BR%This doesn’t have any impact on algorithms that don’t randomize nuisances (e.g. fits, Asymptotic, or !HybridNew in fequentist mode) or on algorithms that treat all parameters in the same way (e.g. !MarkovChainMC). * Note that constraint terms for the nuisances are ''dropped'' after promotion to a POI using =–redefineSignalPOI=. To produce a likelihood scan for a nuisance parameter, using !MultiDimFit with ==–algo grid==, you should instead use the ==–poi== option which will not cause the loss of the constraint term when scanning. * parameters of interest of the input workspace that are not selected by this command become unconstrained nuisance parameters, but they are not added to the list of nuisances so they will not be randomized (see above) * ==–freezeNuisances <name>== sets the given parameters to constant
+
+A combination of the !MultiSignalModel (defined above) and ==redefineSignalPOIs== can be used to alter the way a datacard is interpreted to transform one signal or ordinary background process into a background with freely floating normalization, or with a fixed but different normalization (useful e.g. for cross-checks): * First, use the !MultiSignalModel to create a workspace in which that process has its own associated signal strenght parameter (e.g. =r_B=) different from that of the nomal signal (e.g. =r=) * Then, fits or upper limits on =r= can be obtained running combine with ==–redefineSignalPOIs r== so that =r_B= becomes freely floating. * ==setPhysicsModelParameterRanges== can be used to redefine the range to make the process freely float only in some range (this is equivalent to adding a flat uncertainty to it, ==lnU== or ==unif==) while ==freezeNuisances== and ==setPhysicsModelParameters== can instead be used to pin it to some value. * fits and likelihood scans of =r_B= can be used to check whether the information on this process from the data in the signal region is consistent with the a-priori prediction for it within the respective uncertainties (and ==freezeNuisances== can be used to shut off the uncertainties on the a-priori prediction if one wants to see only the uncertainty from the data)
+
+—+++ Advanced Tutorials
+
+Follow [[CMS/HiggsWG/SWGuideNonStandardCombineUses][this link]] for advanced tutorials and non-standard uses of combine
+
+—++ Full documentation
+
+—+++ Common options
+
+—++++ Choice of the prior for bayesian methods
+
+For methods based on bayesian inference (!BayesianSimple, !MarkovChainMC) you can specify a prior for the signal strength. This is controlled through option ==–prior==, and the values that are currently allowed are: * ''uniform'': flat prior * ''1/sqrt(r)'': prior proportional to ''1/sqrt(r)'', where ''r'' is the signal strength; for a counting experiment with a single channel and no systematics, this is Jeffrey’s prior. %BR%Note that you might have to put the ''1/sqrt(r)'' within quotes because for some shells the braces have a special meaning.
+
+If no prior is specified, a flat prior is assumed.
+
+—+++ Algorithm-specific options
+
+= ProfiLe =
+
+—++++ !ProfileLikelihood algorithm
+
+The !ProfileLikelihood algorithm has only two options besides the common ones: the choice of the minimizer algorith (Minuit2 or Minuit), and the choice of the tolerance.
+
+If you see that the limit fails with one of the minimizer, try the other. Sometimes this problem happens due to numerical instabilities even if the model itself looks perfectly well behaved. If neither of the two succeeds, another possible way of circumventing the instability is sometimes to change the range of =r= by a small amount, or to change slightly one number in the model (e.g. in one simple counting experiment a test was failing when assuming ΔB/B = 0.3, but was succeeding for ΔB/B = 0.301 and ΔB/B = 0.299, giving almost the same result)
+
+In case you experience numerical instabilities, e.g. failures or bogus results, you could be able to work around the problem by performing the minimization multiple times and requiring the results to be consistent. This can be done using the options below. * ==maxTries==: how many times the program should attempt to find a minimum at most (plausible range: 20-100) * ==tries==: how many times the program should succeed in computing a limit (plausible range: 5-10) * ==maxOutlierFraction==: maximum fraction of bad results within the tries ones (plausible: 0.15-0.30; default 0.25) * ==maxOutliers==: maximum number of bogus results before giving up for this point (plausible values: 2-5; default 3) * ==preFit==: don’t try to profile the likelihood if Minuit already gave errors in finding the minimum. (suggested)
+
+—++++ !BayesianSimple algorithm
+
+The !BayesianSimple algorithm doesn’t have parameters besides the ones specified above under the “Common options” section.
+
+= MarkoV =
+
+—++++ !MarkovChainMC algorithm
+
+This algorithm has many configurable parameters, and you’re encouraged to experiment with those because the default configuration might not be the best for you (or might not even work for you at all)
+
+''Iterations, burn-in, tries''%BR% Three parameters control how the MCMC integration is performed: * the number of ''tries'' (option ==–tries==): the algorithm will run multiple times with different ransom seeds and report as result the truncated mean and rms of the different results. The default value is 10, which should be ok for a quick computation, but for something more accurate you might want to increase this number even up to ~200. * the number of ''iterations'' (option ==-i==) determines how many points are proposed to fill a single Markov Chain. The default value is 10k, and a plausible range is between 5k (for quick checks) and 20-30k for lengthy calculations. Usually beyond 30k you get a better tradeoff in time vs accuracy by increasing the number of chains (option ==tries==) * the number of ''burn-in steps'' (option ==-b==) is the number of points that are removed from the beginning of the chain before using it to compute the limit. IThe default is 200. If your chain is very long, you might want to try increase this a bit (e.g. to some hundreds). Instead going below 50 is probably dangerous.
+
+''Proposal'' %BR% The option ==–proposal== controls the way new points are proposed to fill in the MC chain. * ==uniform==: pick points at random. This works well if you have very few nuisance parameters (or none at all), but normally fails if you have many. * ==gaus==: Use a product of independent gaussians one for each nuisance parameter; the sigma of the gaussian for each variable is 1/5 of the range of the variable (this can be controlled using the parameter ==propHelperWidthRangeDivisor==). This proposal appears to work well for a reasonable number of nuisances (up to ~15), provided that the range of the nuisance parameters is reasonable, like ±5σ. It does ''not'' work without systematics. * ==ortho= (''default''): (previously known as =test=) This proposalis similar to the multi-gaussian proposal but at every step only a single coordinate of the point is varied, so that the acceptance of the chain is high even for a large number of nuisances (i.e. more than 20). * ==fit==: Run a fit and use the uncertainty matrix from HESSE to construct a proposal (or the one from MINOS if the option =–runMinos= is specified). This sometimes work fine, but sometimes gives biased results, so we don’t recommend it in general. If you believe there’s something going wrong, e.g. if your chain remains stuck after accepting only a few events, the option ==debugProposal== can be used to have a printout of the first ''N'' proposed points to see what’s going on (e.g. if you have some region of the phase space with probability zero, the =gaus= and =fit= proposal can get stuck there forever)
+
+= HybridNew =
+
+—++++ !HybridNew algorithm
+
+''Type of limit'' %BR% By default, !HybridNew computes hybrid bayesian-frequentist limits. If one specifies the command line option ==–freqentist== then it will instead compute the fully frequentist limits.
+
+''Rule'' (option ==–rule==) %BR% The rule defines how the distribution of the test statistics is used to compute a limit. When using the <i>CL<sub>s+b</sub></i> rule the limit to the value of the signal strength for which 95% of the pseudo-experiments give a result more signal-like than the current one, <nobr><i>P(x &lt; x<sub>obs</sub>|r''s+b) = 1 - CL</i></nobr>. For the more conservative <i>CL<sub>s</sub></i> rule, the limit is set by the condition <nobr><i>P(x &lt; x<sub>obs</sub>|r''s+b) /P(x &lt; x<sub>obs</sub>|b) = 1 - CL</i></nobr> . %BR%''The default rule is <i>CL<sub>s</sub></i>''.
+
+''Test statistics'' (option ==–testStat==) %BR% The ''test statistics'' is the measure of how signal-like or background-like is an observation. The following test statistics are provided: * ''Simple Likelihood Ratio'' (option value ==LEP== or ==SLR==): The LEP-like ratio of likelihoods ( _L(x|r''s+b,θ) / L(x|b, θ)_ ) where numerator and denominator are evaluated for the reference values of the nuisance parameters θ. '' ''Ratio of Profiled Likelihoods'' (option value ==TEV== or ==ROPL==): The Tevatron-like ratio of profiled likelihoods, in which before computing each of the likelihoods is maximised as function of the nuisance parameters ( _max<sub>θ</sub> L(x|r''s+b,θ) / max<sub>θ</sub> L(x|b, θ)_ ). '' ''Profile Likelihood modified for upper limits'' (option value ==LHC== or ==MPL==): The LHC-like (or Atlas-like) profiled likelihood in which the maximization of the likelihood is done also in the signal strength (''max<sub>θ</sub> L(x|r''s+b,θ) / max<sub>r’, θ</sub> L(x|r’''s+b,θ)'' ), with the constraints ''0 ≤ r’ ≤ r'' where the upper bound is applied to force the method to always give an upper limit and not a two-sided interval. * ''Profile Likelihood (not modified for upper limits)'' (option value ==PL==): The traditional profiled likelihood in which the maximization of the likelihood is done also in the signal strength (''max<sub>θ</sub>L(x|r''s+b,θ) / max<sub>r’, θ</sub>L(x|x|r’''s+b,θ)'' ), with just the physical constraints ''0 ≤ r’'' This test statistics can give two-sided limits, as it starts decreasing when the number of observed events is above the expectations from the signal+background hypothesis. The default value when computing hybrid bayesian-frequentist limits is ==LEP==. The default value when computing frequentist limits is ==LHC==.
+
+''Accuracy'' %BR% The search for the limit is performed using an adaptive algorithm, terminating when the estimate of the limit value is below some limit or when the precision cannot be futher improved with the specified options. The options controlling this behaviour are: * ==rAbsAcc==, ==rRelAcc==: define the accuracy on the limit at which the search stops. The default values are 0.1 and 0.05 respectively, meaning that the search is stopped when Δr &lt; 0.1 or Δr/r &lt; 0.05. * ==clsAcc==: this determines the absolute accuracy up to which the CLs values are computed when searching for the limit. The default is 0.5%. Raising the accuracy above this value will increase significantly the time to run the algorithm, as you need N<sup>2</sup> more toys to improve the accuracy by a factor <sub>N</sub>; you can consider enlarging this value if you’re computing limits with a larger CL (e.g. 90% or 68%) %BR%Note that if you’re using the <i>CL<sub>s+b</sub></i> rule then this parameter will control the uncertainty on <i>CL<sub>s+b</sub></i>, not on <i>CL<sub>s</sub></i> . * ==T== or ==toysH==: controls the minimum number of toys that are generated for each point. The default value of 500 should be ok when computing the limit with 90-95% CL. You can decrease this number if you’re computing limits at 68% CL, or increase it if you’re using 99% CL.
+
+''Computing significances'' %BR% When computing the significances, there is no adaptive generation. You can control the number of toys with option ==T== or =toysH== and the option ==iterations== (shortcut ==-i==, default 1): the default of (1 iteration)×(500 toys) is not enough to probe a significances above ~2. We suggest that you uncrease the number of iterations instead of the number of toys, since the increase in time is linear with the iterations but non-linear with the toys.%BR%
+
+In order to compute the significance in multiple jobs, proceed as follows: * Run N different jobs with the same inputs but different random seed (option ==-s==), specifying the additional option ==–saveHybridResult==. * Use ==hadd== to merge the output root files in a single one. The program will complain with messages like =Cannot merge object type, name: HybridCalculator _result= which can be safely ignored. * Compute the significance from the merged file running again but with options =–readHybridResults== and ==–toysFile=&lt;merged.root&gt;== Caveat: there is no check within the program that you’re using consistent inputs for the different jobs.
+
+''Simple hypotesis testing'': %BR% Sometimes you just want to compute the p-values of the background-only hypotesis and of the signal plus background hypotesis for a fixed value of the signal strength. %BR% This can be done specifying the option ==singlePoint &lt;value&gt;== which will set the signal strength to that value and run the hypothesis test. It will generate toys until the required accuracy is met (see above for parameter ==clsAcc==). You can turn off adaptive generation setting ==clsAcc== to zero, and then it will generate the toys once (or multiple times if you set option ==iterations== to a value larger than 1). %BR% Just like for significance, you can run multiple times with different seeds and options ==–saveHybridResult==, combine the output files with ==hadd== and then compute the final result with ==–readHybridResult –toysFile=merged.root==
+
+''Performance issues'' %BR% The current hybrid code requires a lot of cpu resources. You can speed up the processing by using multiple cores (option ==fork==, default value is 1). Note that even with ==fork== set to 1, toy generation is done in a separate thread to avoid memory leaks. If you want to run in a single thread, e.g. to be able to read the debug output during generation, you should set the option to zero. %BR% If running multi-threaded on the cern batch cluster, you should declare it to the =bsub= command when submitting the jobs: e.g. for a job that uses four cores you should use ==bsub -n 4 -R “‘span[hosts=1]’” …==
+
+= HybridNewGrid =
+
+—+++++!! !HybridNew algorithm usage for complex models or expected limits: grids
+
+If your model is complex, or you need to know the limit accurately, or you want expected limits, then running the computation in a single job might not be feasible.
+
+The alternative approach is to compute a grid of distributions of the test statistics for various values of the signal strength, a task that is easy to parallelize, and then use the that grid to compute the observed limit (and also the expected ones). This requires you to have some knowledge of where the limit should be, which you can gain e.g. from the ProfileLikelihood method
+
+''Creating the grid: manual way'' %BR% The procedure to do this manually would be like the procedure for significances or simple hypothesis testing described previously: for each value ==r_i== of the cross section, you write out one file with the distribution of the test statistics using
+
+<verbatim> combine card.txt -M HybridNew [–freq] [other options] -s seed_i –singlePoint r_i –saveToys –saveHybridResult</verbatim>
+
+and then you can merge all the output files for the different ==r_i== with ==hadd==. The =[other options]= should include ==–clsAcc 0== to switch off adaptive sampling, and you can tune the CPU time by working on the parameters ==-T== and ==–iterations==. %BR% It is important that you use different ==seed_i== values for each point; if you don’t care about exact reproducibility, you can just use ==–seed -1== and the code will take care of randomizing itself properly.
+
+''Creating the grid: automated way, using CRAB'' %BR% Once you have a sense of the time needed for each toy, and of the range to consider, you can use the script [[https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/blob/master/test/makeGridUsingCrab.py][makeGridUsingCrab.py]] to run the toys to create the grid in parallel either on LXBATCH or on regular T2s (or anything else that CRAB can digest). The procedure is very simple: %BR%
+
+<verbatim> makeGridUsingCrab.py card.txt minimum maximum -n points [other options] -o name</verbatim>
+
+This will create a crab cfg file =name.cfg= and a script =name.sh=, and possibly a binary workspace =name.workspace.root=. You can then just create and submit the jobs from that cfg file, and merge the output rootfiles with =hadd=(note: =hadd= will complain with messages like =Cannot merge object type, name: HybridCalculator _result= which can be safely ignored).%BR% The other options, that you can get executing the program with ==–help== are: * ==-T==: same as in combine * ==-r==: use a random seed in each job (suggested) * ==-I n==: run only on 1/n of the points in each job (suggested if you want to have many points) * ==-t==, ==-j==: choose the total number of toys and of jobs (can change later from the crab cfg file) * ==–lsf==, ==–queue …==: use lxbatch with the specific queue (can change later from the crab cfg file)
+
+Note that you can merge also the output of multiple crab submissions, if you have used random seeds.
+
+''Using the grid for observed limits'' %BR%
+
+<verbatim> combine mydatcard.txt -M HybridNew [–freq] –grid=mygrid.root</verbatim>
+
+All other parameters controlling toys, accuracy and so on are meaningless in this context. Note that it might still take a while if you have many points and the test statistics is slow to evaluate. Add the option ==–saveGrid== to save the value of the observed CLs at each grid point in the output tree.
+
+''Using the grid for expected limits'' %BR%
+
+<verbatim> combine mydatcard.txt -M HybridNew [–freq] –grid=mygrid.root –expectedFromGrid 0.5</verbatim>
+
+0.5 gives you the median. use 0.16/0.84 to get the endpoints of 68% interval, 0.025/0.975 to get the 95% one). Add the option ==–saveGrid== to save the value of the expected quantile CLs at each grid point in the output tree.
+
+''Plotting the test-statistics distributions'' %BR%
+
+The distribution of the test-statistic under the signal plus background and background only hypotheses can be plotted at each value of the grid using the following;
+
+<verbatim> python test/plotTestStatCLs.py –input mygrid.root –poi r –val all –mass MASS</verbatim>
+
+The output root file will contain a plot for each point found in the grid.
+
+—++++ FeldmanCousins
+
+The F-C method is used to compute an interval with the specified confidence level.
+
+If you run the model without special options, it will report the upper limit to the signal strength. If you want instead the lower end of the interval, just run it with option ==lowerLimit==.
+
+The algorithm will search for a limit with an iterative procedure until the specified absolute or relative accuracy is met, as controlled by the parameters ==rAbsAcc==, ==rRelAcc=. The default values are 0.1 and 0.05 respectively, meaning that the search is stopped when Δr &lt; 0.1 or Δr/r &lt; 0.05.
+
+The number of toys generated is adaptive. You can increase it by a factor using option ==toysFactor== a value of 2 or 4 is suggested if you want to compute the limit with high accuracy.
+
+—++ Running under CRAB
+
+%RED% The instructions below are for use with ==crab2==. For instructions on how to use the grid for toy based studies or complicated model scans under ==crab3==, follow the instructions given [[HiggsWG.SWGuideNonStandardCombineUses#Running_combine_on_the_grid][here]].
+
+Running many toy MC for the limit calculation may be conveniently split among the different available GRID resources using CRAB. Examples of how to run on the GRID via CRAB are provided in the files: * ==[[https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/blob/master/test/combine_crab.sh][combine_crab.sh]]== * ==[[https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/blob/master/test/combine_crab.cfg][combine_crab.cfg]]==
+
+—+++!! Preparing the ROOT workspace
+
+The first thing to do is to convert the datacards and possibly the shape model into a ROOT workspace. This model will be shipped to Worker Nodes for GRID processing. This is done via the utility script ==text2workspace.py==. For instance: <verbatim> ../scripts/text2workspace.py ../data/benchmarks/simple-counting/counting-B0-Obs0-StatOnly.txt -b -o model.root</verbatim>
+
+—+++!! Shell script for GRID Worker Nodes
+
+CRAB is designed mainly to provide automatic ==cmsRun== job splitting providing the number of jobs one wants to run, and the number of ‘events’ in total one wants to process.The total number of toy MC we want to run. The maximum number of events is passed to the application to be executed via the variable ==<math>MaxEvents==. In our case, we will use for convenience ==</math>MaxEvents== as the number of toy MC to run per job.
+
+The script ==[[https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/blob/master/test/combine_crab.sh][combine_crab.sh]]== runs the combiner code with the proper options, and prepares the output to be retrieved after the run completion on the Worker Nodes. It takes as argument the job indes (==<math>1==), which we use as random seed. The main elements there are running the combiner and packing the output for final retrieval: %SYNTAX{ syntax="sh"}% echo "job number: seed #</math>i with <math>n toys" ./combine model.root -t</math>n -s$i &gt;&amp; log.txt mv *.root outputToy/ mv log.txt outputToy/ echo “pack the results” tar cvfz outputToy.tgz outputToy/ %ENDSYNTAX%
+
+—+++!! CRAB configuration script
+
+Then, the script == [[https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/blob/master/test/combine_crab.cfg][combine_crab.cfg]]== sets how many jobs to run and how many toys per job. And finally, which files to ship to the Worker Nodes (the executable itself and the ROOT workspace), and which file to retrieve (the packed output): %SYNTAX{ syntax=“sh”}% [CRAB] jobtype = cmssw scheduler = glite
+
+[CMSSW] output_file = outputToy.tgz datasetpath=None pset=None total_number_of_events=100 number_of_jobs=10
+
+[USER] script_exe = combine_crab.sh additional_input_files = combine, model.root return_data = 1 %ENDSYNTAX%
+
+Please, notice that you have to ship to Worker Nodes the executable itself, so, before running you have to do:
+
+<verbatim> ln -s ../../../../bin/slc5_amd64_gcc434/combine combine</verbatim>
+
+—+++!! GRID submission via CRAB
+
+CRAB submission can be now performed as usually done for other CMSSW analysis application:
+
+* create your jobs: <verbatim> crab -create -cfg combine_crab.cfg</verbatim>
+* submit your jobs: <verbatim> crab -submit</verbatim>
+* monitor your jobs’ status: <verbatim> crab -status</verbatim>
+* after jobs are finished, retrieve the output: <verbatim> crab -getoutput</verbatim>
+
+The output consists in several files =outputToy_n_m_xyz.tgz= that contain the output of each job, including the log files, that can be combined and analyzed to obtain the final result.
+
+—++ Links
+
+* [[CMS/HiggsWG/SWGuideNonStandardCombineUses][Further Reading and Advanced usage tutorials]]
+* [[CMS/HiggsWG/HiggsCombinationConventions][Conventions to be used when preparing inputs for Higgs combinations]]
+* [[http://cms.cern.ch/iCMS/jsp/db_notes/noteInfo.jsp?cmsnoteid=CMS%20AN-2011/298][CMS AN-2011/298: Procedure for the LHC Higgs boson search combination in summer 2011]] (describing some of the methods used in =combine=)
+
+—++ Contacts * ''Hypernews forum'': hn-cms-higgs-combination [[https://hypernews.cern.ch/HyperNews/CMS/get/higgs-combination.html]] <!--   * You can also check out [[HiggsToWWLimitsExample]], which is currently under development. -->
+
+= ReviewStatus =
+
+—++!! Review status
+
+<!-- Add your review status in this table structure with 2 columns delineated by three vertical bars -->
+| ''Reviewer/Editor and Date (copy from screen)'' | ''Comments'' | | Main.GiovanniPetrucciani - 14-Dec-2010 | created template page | | Main.GiovanniPetrucciani - 21-Mar-2011 | new tag | | Main.LucaLista - 04-May-2011 | added CRAB submission | | Main.GiovanniPetrucciani - 10-Jun-2011 | Frequentist limits | | Main.GiovanniPetrucciani - 10-Jun-2011 | Frequentist grids and expected limits | <!-- In the following line, be sure to put a blank space AFTER your name; otherwise the Summary doesn't come out right. -->
+
+%RESPONSIBLE% Main.GiovanniPetrucciani %BR% %REVIEW% Main.GiovanniPetrucciani
+
+—++ Combine-based packages
+
+SWGuideHiggs2TauLimits
+
+ATGCRooStats
